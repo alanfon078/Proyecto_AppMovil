@@ -72,3 +72,6 @@ object AppViewModelProvider {
  */
 fun CreationExtras.inscripcionesApp(): InscripcionesApp =
     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as InscripcionesApp)
+
+fun CreationExtras.inscripcionesApplication(): InscripcionesApp = inscripcionesApp()
+
