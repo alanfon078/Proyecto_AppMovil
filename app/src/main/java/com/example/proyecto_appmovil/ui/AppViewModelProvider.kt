@@ -5,6 +5,9 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.proyecto_appmovil.InscripcionesApp
+import com.example.proyecto_appmovil.ui.screens.admin.AdminAspiranteDetailViewModel
+import com.example.proyecto_appmovil.ui.screens.admin.AdminFechasViewModel
+import com.example.proyecto_appmovil.ui.screens.admin.AdminHomeViewModel
 import com.example.proyecto_appmovil.ui.screens.auth.LoginViewModel
 import com.example.proyecto_appmovil.ui.screens.auth.RegisterViewModel
 import com.example.proyecto_appmovil.ui.screens.documents.DocumentsViewModel
@@ -13,57 +16,62 @@ import com.example.proyecto_appmovil.ui.screens.notifications.NotificationsViewM
 import com.example.proyecto_appmovil.ui.screens.payment.PaymentViewModel
 import com.example.proyecto_appmovil.ui.screens.photo.CredentialPhotoViewModel
 import com.example.proyecto_appmovil.ui.screens.profile.ProfileViewModel
+import com.example.proyecto_appmovil.ui.screens.reglamento.ReglamentoViewModel
 import com.example.proyecto_appmovil.ui.screens.status.StatusViewModel
 
+/**
+ * Proveedor central de ViewModels que inyecta el repositorio
+ * a través del AppContainer (Application -> Activity -> ViewModel).
+ */
 object AppViewModelProvider {
-    val Factory = viewModelFactory {
+    val Factory: ViewModelProvider.Factory = viewModelFactory {
         initializer {
-            LoginViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            LoginViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            RegisterViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            RegisterViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            HomeViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            HomeViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            DocumentsViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            DocumentsViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            NotificationsViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            StatusViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            PaymentViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            ProfileViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            CredentialPhotoViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            NotificationsViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            ProfileViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            CredentialPhotoViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            StatusViewModel(
-                repository = inscripcionesApplication().container.inscripcionesRepository
-            )
+            PaymentViewModel(inscripcionesApp().container.inscripcionesRepository)
+        }
+        initializer {
+            ReglamentoViewModel(inscripcionesApp().container.inscripcionesRepository)
+        }
+        initializer {
+            AdminHomeViewModel(inscripcionesApp().container.inscripcionesRepository)
+        }
+        initializer {
+            AdminFechasViewModel(inscripcionesApp().container.inscripcionesRepository)
+        }
+        initializer {
+            AdminAspiranteDetailViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
     }
 }
 
-fun CreationExtras.inscripcionesApplication(): InscripcionesApp =
+/**
+ * Extensión para recuperar la instancia de Application como InscripcionesApp.
+ */
+fun CreationExtras.inscripcionesApp(): InscripcionesApp =
     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as InscripcionesApp)
+
+fun CreationExtras.inscripcionesApplication(): InscripcionesApp = inscripcionesApp()
+

@@ -9,12 +9,15 @@ import com.example.proyecto_appmovil.model.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class InscripcionesRepositoryImpl(
     private val aspiranteDao: AspiranteDao,
@@ -30,10 +33,187 @@ class InscripcionesRepositoryImpl(
 ) : InscripcionesRepository {
 
     // ==========================================
+    // --- DATOS DE DEMOSTRACIÓN (FALLBACK OFFLINE) ---
+    // Se usan cuando la Web API no está disponible y Room aún no tiene datos,
+    // para que las pantallas Compose sigan siendo navegables.
+    // ==========================================
+
+    private var currentAspirante = Aspirante(
+        id = "1",
+        nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
+        curp = "OOAD030515HGTRRN01",
+        email = "aspirante@itsur.edu.mx",
+        telefono = "4451234567",
+        carrera = "Ing. Sistemas Computacionales",
+        folioAspirante = "ITSUR-2026-0042",
+        promedioBachillerato = 9.2,
+        direccion = "Calle Hidalgo #123, Uriangato, Gto.",
+        estadoInscripcion = EstadoInscripcion.EN_REVISION,
+        rol = "aspirante"
+    )
+
+    private val documentosList = mutableListOf(
+        Documento(
+            id = "doc_1",
+            tipo = TipoDocumento.ACTA_NACIMIENTO,
+            nombreArchivo = "Acta_Nacimiento_Dafne.pdf",
+            uriString = "content://media/external/file/101",
+            tamanoBytes = 1420500,
+            fechaSubida = "01/11/2026 10:30",
+            estado = EstadoDocumento.VALIDADO,
+            observaciones = "Documento verificado correctamente."
+        ),
+        Documento(
+            id = "doc_2",
+            tipo = TipoDocumento.CURP,
+            nombreArchivo = "CURP_Certificada.pdf",
+            uriString = "content://media/external/file/102",
+            tamanoBytes = 850200,
+            fechaSubida = "01/11/2026 10:32",
+            estado = EstadoDocumento.VALIDADO,
+            observaciones = "CURP actualizada ante RENAPO."
+        ),
+        Documento(
+            id = "doc_3",
+            tipo = TipoDocumento.CERTIFICADO_BACHILLERATO,
+            nombreArchivo = "Certificado_Preparatoria.pdf",
+            uriString = "content://media/external/file/103",
+            tamanoBytes = 2950000,
+            fechaSubida = "02/11/2026 14:15",
+            estado = EstadoDocumento.SUBIDO,
+            observaciones = "Pendiente de cotejo por Servicios Escolares."
+        ),
+        Documento(
+            id = "doc_4",
+            tipo = TipoDocumento.COMPROBANTE_DOMICILIO,
+            nombreArchivo = null,
+            uriString = null,
+            tamanoBytes = 0,
+            fechaSubida = null,
+            estado = EstadoDocumento.PENDIENTE,
+            observaciones = "Recibo de luz, agua o teléfono no mayor a 3 meses."
+        )
+    )
+
+    private val notificacionesList = mutableListOf(
+        Notificacion(
+            id = "notif_1",
+            titulo = "Documentos en Revisión",
+            mensaje = "Tus documentos han sido recibidos por el personal de Servicios Escolares del ITSUR y están en proceso de verificación.",
+            fecha = "02 de Noviembre, 2026",
+            leida = false
+        ),
+        Notificacion(
+            id = "notif_2",
+            titulo = "Examen Diagnóstico de Admisión",
+            mensaje = "El examen diagnóstico de nuevo ingreso se aplicará en línea el día 15 de Noviembre a las 09:00 hrs.",
+            fecha = "30 de Octubre, 2026",
+            leida = false
+        ),
+        Notificacion(
+            id = "notif_3",
+            titulo = "Registro Exitoso",
+            mensaje = "Bienvenido al proceso de admisión ITSUR 2026. Tu número de folio asignado es ITSUR-2026-0042.",
+            fecha = "28 de Octubre, 2026",
+            leida = true
+        )
+    )
+
+    private val fechasList = listOf(
+        FechaImportante(
+            id = "f_1",
+            titulo = "Cierre de Carga de Documentos",
+            descripcion = "Fecha límite para subir Acta, CURP y Certificado al sistema.",
+            fechaLimite = "10 de Noviembre, 2026",
+            diasRestantes = 8,
+            tipo = "limite_entrega"
+        ),
+        FechaImportante(
+            id = "f_2",
+            titulo = "Examen de Admisión / Diagnóstico",
+            descripcion = "Aplicación del examen CENEVAL en instalaciones ITSUR y virtual.",
+            fechaLimite = "15 de Noviembre, 2026",
+            diasRestantes = 13,
+            tipo = "examen"
+        ),
+        FechaImportante(
+            id = "f_3",
+            titulo = "Publicación de Resultados",
+            descripcion = "Consulta de listas de aspirantes aceptados en el portal oficial.",
+            fechaLimite = "25 de Noviembre, 2026",
+            diasRestantes = 23,
+            tipo = "publicacion"
+        ),
+        FechaImportante(
+            id = "f_4",
+            titulo = "Pago de Cuota de Inscripción",
+            descripcion = "Pago bancario de la cuota semestral de nuevo ingreso.",
+            fechaLimite = "05 de Diciembre, 2026",
+            diasRestantes = 33,
+            tipo = "pago"
+        )
+    )
+
+    private var comprobantePago = ComprobantePago(
+        id = "pago_1",
+        aspiranteId = "1",
+        folio = "BBVA-84920193",
+        monto = 2850.0,
+        fechaPago = "02/11/2026",
+        comprobanteUri = "",
+        validado = false
+    )
+
+    private var reglamentoFirmado = false
+
+    private val aspirantesAdminList = mutableListOf(
+        Aspirante(
+            id = "1",
+            nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
+            curp = "OOAD030515HGTRRN01",
+            email = "aspirante@itsur.edu.mx",
+            telefono = "4451234567",
+            carrera = "Ing. Sistemas Computacionales",
+            folioAspirante = "ITSUR-2026-0042",
+            promedioBachillerato = 9.2,
+            direccion = "Uriangato, Gto.",
+            estadoInscripcion = EstadoInscripcion.EN_REVISION,
+            rol = "aspirante"
+        ),
+        Aspirante(
+            id = "2",
+            nombreCompleto = "Alan Yael Fonseca Ruiz",
+            curp = "FORA020820HGTRNA09",
+            email = "alan@itsur.edu.mx",
+            telefono = "4457654321",
+            carrera = "Ing. Sistemas Computacionales",
+            folioAspirante = "ITSUR-2026-0043",
+            promedioBachillerato = 9.5,
+            direccion = "Moroleón, Gto.",
+            estadoInscripcion = EstadoInscripcion.ACEPTADO,
+            rol = "aspirante"
+        ),
+        Aspirante(
+            id = "3",
+            nombreCompleto = "Montserrat Tenorio Villagómez",
+            curp = "TEVM031110MGTSRR05",
+            email = "montserrat@itsur.edu.mx",
+            telefono = "4459876543",
+            carrera = "Ing. Sistemas Computacionales",
+            folioAspirante = "ITSUR-2026-0044",
+            promedioBachillerato = 9.0,
+            direccion = "Yuriria, Gto.",
+            estadoInscripcion = EstadoInscripcion.CON_OBSERVACIONES,
+            rol = "aspirante"
+        )
+    )
+
+    // ==========================================
     // --- AUTENTICACIÓN Y SESIÓN ---
     // ==========================================
 
-    override suspend fun login(email: String, contrasena: String): Result<Aspirante> = withContext(ioDispatcher) {
+    override suspend fun login(usuarioOCorreo: String, contrasena: String): Result<Aspirante> = withContext(ioDispatcher) {
+        val email = usuarioOCorreo.trim()
         try {
             val response = apiService.login(LoginRequestDto(email = email, contrasena = contrasena))
 
@@ -83,14 +263,17 @@ class InscripcionesRepositoryImpl(
                 refreshFechasImportantes()
             } catch (_: Exception) { }
 
-            val aspiranteModel = getAspiranteActual() ?: Aspirante(
+            val aspiranteModel = response.aspirante?.let {
+                aspiranteDao.getAspiranteSync()?.let { entity -> mapEntityToAspirante(entity, userEntity) }
+            } ?: Aspirante(
                 id = response.aspirante?.idAspirante?.toString() ?: "1",
                 nombreCompleto = "${response.usuario.nombre} ${response.usuario.apellidos}",
                 curp = response.aspirante?.curp ?: "",
                 email = response.usuario.correo,
                 telefono = response.aspirante?.telefono ?: "",
                 carrera = response.aspirante?.carreraNombre ?: "Ingeniería en Sistemas Computacionales",
-                folioAspirante = response.aspirante?.folio ?: "FOL-2026-001"
+                folioAspirante = response.aspirante?.folio ?: "FOL-2026-001",
+                rol = response.usuario.rol
             )
 
             Result.success(aspiranteModel)
@@ -102,10 +285,27 @@ class InscripcionesRepositoryImpl(
             if (localUser != null && localUser.correo.equals(email, ignoreCase = true) && localAspirante != null) {
                 val model = mapEntityToAspirante(localAspirante, localUser)
                 Result.success(model)
+            } else if (e is java.io.IOException) {
+                // Modo demostración: la Web API no es alcanzable y no hay caché local.
+                Result.success(loginDemo(email))
             } else {
+                // Error real del servidor (p. ej. 401 credenciales inválidas)
                 Result.failure(e)
             }
         }
+    }
+
+    /** Login simulado (sin servidor). Los usuarios con "admin", "escolar" o "control" entran como Control Escolar. */
+    private fun loginDemo(usuarioOCorreo: String): Aspirante {
+        val userTrim = usuarioOCorreo.trim().lowercase()
+        if (userTrim.contains("admin") || userTrim.contains("escolar") || userTrim.contains("control")) {
+            return currentAspirante.copy(
+                nombreCompleto = "Lic. Gustavo Vega (Control Escolar)",
+                email = "escolar@itsur.edu.mx",
+                rol = "escolar"
+            )
+        }
+        return currentAspirante
     }
 
     override suspend fun loginApi(email: String, contrasena: String): Result<LoginResponseDto> = withContext(ioDispatcher) {
@@ -208,13 +408,13 @@ class InscripcionesRepositoryImpl(
 
     override fun getAspiranteFlow(): Flow<AspiranteEntity?> = aspiranteDao.getAspiranteFlow()
 
-    override suspend fun getAspiranteActual(): Aspirante? = withContext(ioDispatcher) {
+    override suspend fun getAspiranteActual(): Aspirante = withContext(ioDispatcher) {
         val entity = aspiranteDao.getAspiranteSync()
         val user = usuarioDao.getUsuarioSync()
         if (entity != null && user != null) {
             mapEntityToAspirante(entity, user)
         } else {
-            null
+            currentAspirante
         }
     }
 
@@ -325,28 +525,40 @@ class InscripcionesRepositoryImpl(
     override suspend fun getDocumentos(): List<Documento> = withContext(ioDispatcher) {
         try {
             refreshDocumentos()
+            sincronizarDocumentosPendientes()
         } catch (_: Exception) { }
 
-        // Mapear desde Room (Single Source of Truth)
-        val entities = documentoDao.getDocumentosFlow()
-        // O sincronizar pendientes
-        sincronizarDocumentosPendientes()
+        // Room es la fuente única de verdad; los tipos sin registro local
+        // se completan con los datos de demostración.
+        val locales = documentoDao.getDocumentosFlow().first()
+            .mapNotNull { mapEntityToDocumento(it) }
+            .associateBy { it.tipo }
+        val base = documentosList.associateBy { it.tipo }
+        (base.keys + locales.keys).distinct()
+            .sortedBy { it.ordinal }
+            .mapNotNull { tipo -> locales[tipo] ?: base[tipo] }
+    }
 
-        // Como getDocumentos() devuelve List<Documento>, leemos de la base de datos
-        // usando sync o devolvemos lista mapeada
-        val aspiranteId = sessionManager.getAspiranteId()
-        // Construimos la lista de tipos predeterminados si está vacía
-        val defaultDocs = TipoDocumento.values().map { tipo ->
-            Documento(
-                id = tipo.name,
-                tipo = tipo,
-                nombreArchivo = null,
-                uriString = null,
-                tamanoBytes = 0L,
-                estado = EstadoDocumento.PENDIENTE
-            )
-        }
-        defaultDocs
+    override suspend fun subirDocumento(
+        tipo: TipoDocumento,
+        nombreArchivo: String,
+        uriString: String,
+        tamanoBytes: Long
+    ): Result<Boolean> {
+        val nuevoDoc = Documento(
+            id = "doc_${tipo.name.lowercase()}",
+            tipo = tipo,
+            nombreArchivo = nombreArchivo,
+            uriString = uriString,
+            tamanoBytes = tamanoBytes,
+            fechaSubida = "Hoy",
+            estado = EstadoDocumento.SUBIDO,
+            observaciones = "Documento cargado correctamente, en espera de revisión."
+        )
+        val index = documentosList.indexOfFirst { it.tipo == tipo }
+        if (index != -1) documentosList[index] = nuevoDoc else documentosList.add(nuevoDoc)
+        // Persistir en Room (syncPendiente = true) para sincronizar con la Web API
+        return subirDocumento(nuevoDoc)
     }
 
     override suspend fun refreshDocumentos(): Result<List<DocumentoEntity>> = withContext(ioDispatcher) {
@@ -502,7 +714,7 @@ class InscripcionesRepositoryImpl(
         comprobantePagoDao.getPagoSync()
     }
 
-    override suspend fun getComprobantePago(): ComprobantePago? = withContext(ioDispatcher) {
+    override suspend fun getComprobantePago(): ComprobantePago = withContext(ioDispatcher) {
         val entity = comprobantePagoDao.getPagoSync()
         entity?.let {
             ComprobantePago(
@@ -514,7 +726,7 @@ class InscripcionesRepositoryImpl(
                 comprobanteUri = it.rutaComprobanteLocal ?: "",
                 validado = it.estado == "VALIDADO"
             )
-        }
+        } ?: comprobantePago
     }
 
     override suspend fun refreshPago(): Result<ComprobantePagoEntity?> = withContext(ioDispatcher) {
@@ -614,7 +826,16 @@ class InscripcionesRepositoryImpl(
         try {
             refreshNotificaciones()
         } catch (_: Exception) { }
-        emptyList()
+        val locales = notificacionDao.getNotificacionesFlow(false).first().map { entity ->
+            Notificacion(
+                id = (entity.idRemoto ?: entity.idNotificacion).toString(),
+                titulo = entity.titulo,
+                mensaje = entity.mensaje,
+                fecha = entity.fechaEnvio,
+                leida = entity.leida
+            )
+        }
+        locales.ifEmpty { notificacionesList.toList() }
     }
 
     override suspend fun refreshNotificaciones(): Result<List<NotificacionEntity>> = withContext(ioDispatcher) {
@@ -725,6 +946,181 @@ class InscripcionesRepositoryImpl(
         }
     }
 
+    // ==========================================
+    // --- OPERACIONES DE ALTO NIVEL PARA LA UI ---
+    // ==========================================
+
+    override suspend fun registrarAspirante(
+        nombreCompleto: String,
+        curp: String,
+        email: String,
+        telefono: String,
+        carrera: String,
+        direccion: String,
+        contrasena: String
+    ): Result<Boolean> {
+        val aspirante = currentAspirante.copy(
+            nombreCompleto = nombreCompleto,
+            curp = curp.uppercase(),
+            email = email,
+            telefono = telefono,
+            carrera = carrera,
+            direccion = direccion,
+            folioAspirante = "ITSUR-2026-" + (100..999).random(),
+            estadoInscripcion = EstadoInscripcion.PENDIENTE
+        )
+        val remoto = registrarAspirante(aspirante, contrasena)
+        if (remoto.isSuccess) return remoto
+        val error = remoto.exceptionOrNull()
+        return if (error is java.io.IOException) {
+            // Sin conexión con la Web API: se conserva el registro en modo demostración
+            currentAspirante = aspirante
+            Result.success(true)
+        } else {
+            remoto
+        }
+    }
+
+    override suspend fun registrarComprobantePago(
+        folio: String,
+        monto: Double,
+        fechaPago: String,
+        comprobanteUri: String
+    ): Result<Boolean> {
+        comprobantePago = comprobantePago.copy(
+            folio = folio,
+            monto = monto,
+            fechaPago = fechaPago,
+            comprobanteUri = comprobanteUri,
+            validado = false
+        )
+        return registrarComprobantePago(comprobantePago)
+    }
+
+    override suspend fun marcarNotificacionLeida(id: String) {
+        val index = notificacionesList.indexOfFirst { it.id == id }
+        if (index != -1) {
+            notificacionesList[index] = notificacionesList[index].copy(leida = true)
+        }
+        id.toLongOrNull()?.let { marcarNotificacionLeida(it) }
+    }
+
+    override suspend fun getFechasImportantes(): List<FechaImportante> = withContext(ioDispatcher) {
+        try {
+            refreshFechasImportantes()
+        } catch (_: Exception) { }
+        val locales = fechaImportanteDao.getFechasVigentesFlow().first().map { entity ->
+            FechaImportante(
+                id = entity.idFecha.toString(),
+                titulo = entity.titulo,
+                descripcion = entity.descripcion,
+                fechaLimite = entity.fechaLimite,
+                diasRestantes = calcularDiasRestantes(entity.fechaLimite),
+                tipo = entity.tipo
+            )
+        }
+        locales.ifEmpty { fechasList }
+    }
+
+    override suspend fun isReglamentoFirmado(): Boolean = reglamentoFirmado
+
+    override suspend fun firmarReglamento(firmaData: String): Result<Boolean> {
+        reglamentoFirmado = true
+        return Result.success(true)
+    }
+
+    override suspend fun getAspirantesParaRevision(): List<Aspirante> = withContext(ioDispatcher) {
+        try {
+            val remotos = apiService.getAdminAspirantes().map { mapDtoToAspirante(it) }
+            remotos.ifEmpty { aspirantesAdminList.toList() }
+        } catch (_: Exception) {
+            aspirantesAdminList.toList()
+        }
+    }
+
+    override suspend fun getAspirantePorId(id: String): Aspirante? = withContext(ioDispatcher) {
+        val remoto = id.toLongOrNull()?.let { idLong ->
+            try {
+                mapDtoToAspirante(apiService.getAdminAspiranteDetalle(idLong))
+            } catch (_: Exception) {
+                null
+            }
+        }
+        remoto ?: aspirantesAdminList.find { it.id == id } ?: currentAspirante
+    }
+
+    override suspend fun revisarDocumento(
+        documentoId: String,
+        aprobado: Boolean,
+        observaciones: String
+    ): Result<Boolean> = withContext(ioDispatcher) {
+        val nuevoEstado = if (aprobado) EstadoDocumento.VALIDADO else EstadoDocumento.RECHAZADO
+        val index = documentosList.indexOfFirst { it.id == documentoId }
+        if (index != -1) {
+            documentosList[index] = documentosList[index].copy(estado = nuevoEstado, observaciones = observaciones)
+        }
+        documentoId.toLongOrNull()?.let { idRemoto ->
+            try {
+                apiService.revisarDocumento(
+                    idRemoto,
+                    RevisionDto(estado = if (aprobado) "APROBADO" else "RECHAZADO", observaciones = observaciones)
+                )
+            } catch (_: Exception) { }
+        }
+        Result.success(true)
+    }
+
+    // ==========================================
+    // --- MAPEADORES ---
+    // ==========================================
+
+    private fun mapEntityToDocumento(entity: DocumentoEntity): Documento? {
+        val tipo = TipoDocumento.entries.find { it.name.equals(entity.tipoCodigo, ignoreCase = true) }
+            ?: return null
+        val estado = when (entity.estado.uppercase()) {
+            "VALIDADO", "APROBADO", "ACEPTADO" -> EstadoDocumento.VALIDADO
+            "RECHAZADO" -> EstadoDocumento.RECHAZADO
+            "PENDIENTE" -> EstadoDocumento.PENDIENTE
+            else -> EstadoDocumento.SUBIDO
+        }
+        return Documento(
+            id = (entity.idRemoto ?: entity.idLocal).toString(),
+            tipo = tipo,
+            nombreArchivo = entity.nombreOriginal,
+            uriString = entity.rutaLocal,
+            tamanoBytes = entity.tamanoBytes,
+            estado = estado,
+            observaciones = entity.observaciones ?: "",
+            version = entity.version
+        )
+    }
+
+    private fun mapDtoToAspirante(dto: AspiranteDto): Aspirante {
+        val estadoEnum = try {
+            EstadoInscripcion.valueOf(dto.estadoInscripcion)
+        } catch (_: Exception) {
+            EstadoInscripcion.EN_REVISION
+        }
+        return Aspirante(
+            id = dto.idAspirante.toString(),
+            nombreCompleto = dto.folio,
+            curp = dto.curp,
+            email = "",
+            telefono = dto.telefono,
+            carrera = dto.carreraNombre ?: "Ingeniería en Sistemas Computacionales",
+            folioAspirante = dto.folio,
+            promedioBachillerato = dto.promedioBachillerato ?: 0.0,
+            direccion = dto.direccion ?: "",
+            estadoInscripcion = estadoEnum
+        )
+    }
+
+    private fun calcularDiasRestantes(fecha: String): Int = try {
+        ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(fecha.take(10))).toInt()
+    } catch (_: Exception) {
+        0
+    }
+
     private fun mapEntityToAspirante(entity: AspiranteEntity, user: UsuarioEntity): Aspirante {
         val estadoEnum = try {
             EstadoInscripcion.valueOf(entity.estadoInscripcion)
@@ -742,7 +1138,9 @@ class InscripcionesRepositoryImpl(
             folioAspirante = entity.folio,
             promedioBachillerato = entity.promedioBachillerato,
             direccion = entity.direccion,
-            estadoInscripcion = estadoEnum
+            estadoInscripcion = estadoEnum,
+            rol = user.rol
         )
     }
 }
+
