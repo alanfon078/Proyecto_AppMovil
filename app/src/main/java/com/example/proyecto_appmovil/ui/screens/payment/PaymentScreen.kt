@@ -10,11 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.ui.AppViewModelProvider
 
 @Composable
 fun PaymentScreen(
     onNavigateBack: () -> Unit,
-    viewModel: PaymentViewModel = viewModel()
+    viewModel: PaymentViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     Column(
         modifier = Modifier

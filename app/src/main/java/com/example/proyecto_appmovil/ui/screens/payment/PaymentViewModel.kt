@@ -1,7 +1,10 @@
 package com.example.proyecto_appmovil.ui.screens.payment
 
 import androidx.lifecycle.ViewModel
+import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
 
-class PaymentViewModel : ViewModel() {
-    // TODO: Implementar registro y comprobación de pago de inscripción
+class PaymentViewModel(
+    private val repository: InscripcionesRepository
+) : ViewModel() {
+    val inscripcionesRepo: InscripcionesRepository get() = repository
 }

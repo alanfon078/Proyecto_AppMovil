@@ -10,11 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.ui.AppViewModelProvider
 
 @Composable
 fun CredentialPhotoScreen(
     onNavigateBack: () -> Unit,
-    viewModel: CredentialPhotoViewModel = viewModel()
+    viewModel: CredentialPhotoViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     Column(
         modifier = Modifier

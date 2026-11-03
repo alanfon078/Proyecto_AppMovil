@@ -17,12 +17,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.ui.AppViewModelProvider
 
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -38,57 +39,51 @@ fun LoginScreen(
         // Encabezado institucional azul
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = MaterialTheme.colorScheme.primary
             ),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp)
+                .padding(bottom = 32.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "ITSUR",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
                 Text(
-                    text = "Inscripciones de Nuevo Ingreso",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    text = "Sistema de Inscripciones",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Text(
+                    text = "Nuevo Ingreso",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                 )
             }
         }
 
-        Text(
-            text = "Iniciar Sesión",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
+        // Formulario
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("Usuario o Correo") },
+            label = { Text("Usuario / Folio") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Person,
-                    contentDescription = "Usuario",
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
             },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -101,47 +96,59 @@ fun LoginScreen(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Contraseña",
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
             },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
+        // Botón Iniciar Sesión (Verde Institucional)
         Button(
-            onClick = {
-                if (username.isNotBlank() && password.isNotBlank()) {
-                    onNavigateToHome()
-                }
-            },
+            onClick = onNavigateToHome,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.secondary
             ),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(50.dp)
         ) {
-            Text(text = "Ingresar", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = "INICIAR SESIÓN",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSecondary
+            )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = onNavigateToRegister) {
+        // Botón Registrarse (Gris Institucional)
+        OutlinedButton(
+            onClick = onNavigateToRegister,
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
             Text(
-                text = "¿No tienes cuenta? Regístrate aquí",
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
+                text = "REGISTRARME",
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        TextButton(onClick = { /* TODO: Recuperar contraseña */ }) {
+            Text(
+                text = "¿Olvidaste tu contraseña?",
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
