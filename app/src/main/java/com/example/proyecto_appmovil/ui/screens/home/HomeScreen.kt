@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.ui.AppViewModelProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +30,7 @@ fun HomeScreen(
     onNavigateToPhoto: () -> Unit,
     onNavigateToPayment: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     Scaffold(
         topBar = {

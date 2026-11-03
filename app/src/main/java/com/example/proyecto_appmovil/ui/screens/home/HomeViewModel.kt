@@ -1,7 +1,10 @@
 package com.example.proyecto_appmovil.ui.screens.home
 
 import androidx.lifecycle.ViewModel
+import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
 
-class HomeViewModel : ViewModel() {
-    // TODO: Implementar lógica de pantalla principal / dashboard del aspirante
+class HomeViewModel(
+    private val repository: InscripcionesRepository
+) : ViewModel() {
+    val inscripcionesRepo: InscripcionesRepository get() = repository
 }
