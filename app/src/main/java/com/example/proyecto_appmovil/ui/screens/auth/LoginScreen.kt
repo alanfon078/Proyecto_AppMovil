@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -66,137 +67,147 @@ fun LoginContent(
     onLoginClick: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    Column(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(ItsurOffWhite)
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Banner Institucional Rosa Pastel
-        Card(
-            colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
-            shape = RoundedCornerShape(20.dp),
+            .imePadding()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp)
+                .fillMaxSize()
+                .background(ItsurOffWhite)
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Banner Institucional Rosa Pastel
+            Card(
+                colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(bottom = 24.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.School,
-                    contentDescription = null,
-                    tint = ItsurVinoOscuro,
-                    modifier = Modifier.size(44.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "ITSUR",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = ItsurVinoOscuro
-                )
-                Text(
-                    text = "Inscripciones de Nuevo Ingreso",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ItsurVinoOscuro
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.School,
+                        contentDescription = null,
+                        tint = ItsurVinoOscuro,
+                        modifier = Modifier.size(44.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "ITSUR",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = ItsurVinoOscuro
+                    )
+                    Text(
+                        text = "Inscripciones de Nuevo Ingreso",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ItsurVinoOscuro
+                    )
+                }
             }
-        }
 
-        Text(
-            text = "Iniciar Sesión",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = ItsurVinoOscuro,
-            modifier = Modifier.padding(bottom = 20.dp)
-        )
-
-        if (uiState.errorMessage != null) {
-            ErrorBanner(mensaje = uiState.errorMessage ?: "")
-        }
-
-        // Selector rápido de demostración
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onDemoAspirante,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Demo Alumno", fontSize = 12.sp)
-            }
-            OutlinedButton(
-                onClick = onDemoEscolar,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Demo Escolar", fontSize = 12.sp)
-            }
-        }
-
-        ItsurTextField(
-            value = uiState.usuario,
-            onValueChange = onUsuarioChange,
-            label = "Usuario o Correo institucional",
-            leadingIcon = Icons.Default.Person,
-            errorMessage = uiState.errorUsuario,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ItsurTextField(
-            value = uiState.contrasena,
-            onValueChange = onContrasenaChange,
-            label = "Contraseña",
-            leadingIcon = Icons.Default.Lock,
-            isPassword = true,
-            errorMessage = uiState.errorContrasena,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        PrimaryButton(
-            text = "Ingresar",
-            isLoading = uiState.isLoading,
-            onClick = onLoginClick
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextButton(onClick = onNavigateToRegister) {
             Text(
-                text = "¿No tienes cuenta? Regístrate aquí",
-                color = ItsurCiruela,
+                text = "Iniciar Sesión",
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
+                color = ItsurVinoOscuro,
+                modifier = Modifier.padding(bottom = 20.dp)
             )
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            if (uiState.errorMessage != null) {
+                ErrorBanner(mensaje = uiState.errorMessage ?: "")
+            }
+
+            // Selector rápido de demostración
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDemoAspirante,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Demo Alumno", fontSize = 12.sp)
+                }
+                OutlinedButton(
+                    onClick = onDemoEscolar,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Demo Escolar", fontSize = 12.sp)
+                }
+            }
+
+            ItsurTextField(
+                value = uiState.usuario,
+                onValueChange = onUsuarioChange,
+                label = "Usuario o Correo institucional",
+                leadingIcon = Icons.Default.Person,
+                errorMessage = uiState.errorUsuario,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ItsurTextField(
+                value = uiState.contrasena,
+                onValueChange = onContrasenaChange,
+                label = "Contraseña",
+                leadingIcon = Icons.Default.Lock,
+                isPassword = true,
+                errorMessage = uiState.errorContrasena,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { onLoginClick() }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            PrimaryButton(
+                text = "Ingresar",
+                isLoading = uiState.isLoading,
+                onClick = onLoginClick
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(onClick = onNavigateToRegister) {
+                Text(
+                    text = "¿No tienes cuenta? Regístrate aquí",
+                    color = ItsurCiruela,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
     }
 }
 

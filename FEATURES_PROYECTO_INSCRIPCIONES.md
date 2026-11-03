@@ -69,15 +69,23 @@ server/
 > [!IMPORTANT]
 > Ese avance de UI existe solo en el equipo/dispositivo de quien lo desarrolló. **Acción F00-01:** hacer commit del código de ambas pantallas (y su tema) antes de seguir; este documento las toma como diseño oficial y las marca como "UI hecha, falta lógica".
 
-**Paleta aproximada tomada de las capturas (confirmar con el autor del código):**
+**Paleta oficial definitiva Azul y Gris (aprobada para el 2do Entregable):**
 
-| Rol | Color aprox. |
-| :--- | :--- |
-| Barra superior / botón primario | `#874B6D` |
-| Tarjeta de bienvenida / banner / contenedor de ícono | `#FFD9EA` |
-| Fondo de pantalla | `#FFF8F7` |
-| Tarjeta de opción | `#EFDDE0` |
-| Texto de títulos | `#6B2D52` |
+Se sustituyó la paleta preliminar ciruela/rosa por la escala cromática azul-gris institucional seleccionada:
+
+| Token / Rol | Hex | Descripción / Uso |
+| :--- | :---: | :--- |
+| **`ColorAzulCielo` (`ItsurRosaPastel`)** | `#ACD0F2` | Banner de bienvenida, contenedores principales activos y fondos destacados. |
+| **`ColorAzulPastel` (`ItsurRosaSuave`)** | `#A7C7E4` | Tarjetas de opción del menú principal y contenedores secundarios. |
+| **`ColorAzulAcero`** | `#A2BDD7` | Contenedores terciarios, elevación sutil y bordes suaves. |
+| **`ColorGrisAzulado1`** | `#9EB4CA` | Chips informativos de estado y variantes de superficie. |
+| **`ColorGrisAzulado2`** | `#99ABBE` | Botones secundarios y acentos gráficos. |
+| **`ColorPizarra`** | `#94A3B1` | Contornos y énfasis secundario. |
+| **`ColorGrisFrio` (`ItsurOutline`)** | `#8A9198` | Bordes de inputs `OutlinedTextField` y divisores. |
+| **`ColorGrisMedio` (`ItsurOnSurfaceVariant`)** | `#85898C` | Texto secundario y etiquetas informativas. |
+| **`ColorGrisNeutro`** | `#808080` | Íconos inactivos y elementos neutros. |
+| **Primario Institucional (`ItsurCiruela`)** | `#1E3A5F` | TopAppBar y botones primarios con texto blanco (contraste WCAG AAA). |
+| **Títulos (`ItsurVinoOscuro`)** | `#112233` | Títulos y tipografía de máxima jerarquía. |
 
 ### 2.2 Spec vs. BD vs. App (inconsistencias a resolver)
 
