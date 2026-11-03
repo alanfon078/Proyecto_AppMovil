@@ -31,9 +31,7 @@ fun HomeScreen(
     onNavigateToStatus: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onNavigateToPhoto: () -> Unit,
     onNavigateToPayment: () -> Unit,
-    onNavigateToReglamento: () -> Unit,
     onLogout: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -49,9 +47,7 @@ fun HomeScreen(
         onNavigateToStatus = onNavigateToStatus,
         onNavigateToProfile = onNavigateToProfile,
         onNavigateToNotifications = onNavigateToNotifications,
-        onNavigateToPhoto = onNavigateToPhoto,
         onNavigateToPayment = onNavigateToPayment,
-        onNavigateToReglamento = onNavigateToReglamento,
         onLogout = onLogout
     )
 }
@@ -63,9 +59,7 @@ fun HomeContent(
     onNavigateToStatus: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onNavigateToPhoto: () -> Unit,
     onNavigateToPayment: () -> Unit,
-    onNavigateToReglamento: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -190,28 +184,10 @@ fun HomeContent(
             Spacer(modifier = Modifier.height(12.dp))
 
             OptionCard(
-                titulo = "Foto para Credencial",
-                descripcion = "Fotografía digital con fondo blanco para la credencial",
-                icono = Icons.Default.CameraAlt,
-                onClick = onNavigateToPhoto
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OptionCard(
                 titulo = "Comprobante de Pago",
                 descripcion = "Ficha de pago y reporte del comprobante bancario",
                 icono = Icons.Default.Payment,
                 onClick = onNavigateToPayment
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OptionCard(
-                titulo = "Reglamento Institucional",
-                descripcion = "Lectura de normas y captura de firma electrónica",
-                icono = Icons.Default.Draw,
-                onClick = onNavigateToReglamento
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -245,22 +221,20 @@ fun HomeScreenPreview() {
         HomeContent(
             uiState = HomeUiState(
                 aspirante = Aspirante(
-                    nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
-                    folioAspirante = "ITSUR-2026-0042",
+                    nombreCompleto = "Alan Yael Fonseca Ruiz",
+                    folioAspirante = "ITSUR-2026-00001",
                     carrera = "Ing. Sistemas Computacionales",
                     estadoInscripcion = EstadoInscripcion.EN_REVISION
                 ),
-                totalDocumentosCount = 7,
-                documentosSubidosCount = 4,
+                totalDocumentosCount = 5,
+                documentosSubidosCount = 3,
                 notificacionesNoLeidasCount = 2
             ),
             onNavigateToDocuments = {},
             onNavigateToStatus = {},
             onNavigateToProfile = {},
             onNavigateToNotifications = {},
-            onNavigateToPhoto = {},
             onNavigateToPayment = {},
-            onNavigateToReglamento = {},
             onLogout = {}
         )
     }

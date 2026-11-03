@@ -32,9 +32,15 @@ data class RegisterRequestDto(
     @SerializedName("telefono")
     val telefono: String,
     @SerializedName("idCarrera")
-    val idCarrera: Int,
+    val idCarrera: Int = 1,
     @SerializedName("contrasena")
-    val contrasena: String
+    val contrasena: String,
+    @SerializedName("direccion")
+    val direccion: String? = null,
+    @SerializedName("idEstado")
+    val idEstado: Int? = 11,
+    @SerializedName("idMunicipio")
+    val idMunicipio: Int? = 1
 )
 
 data class UserDto(

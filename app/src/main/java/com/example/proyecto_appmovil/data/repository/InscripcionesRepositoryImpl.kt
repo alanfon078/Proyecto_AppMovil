@@ -338,23 +338,69 @@ class InscripcionesRepositoryImpl(
 
     override suspend fun registrarAspirante(aspirante: Aspirante, contrasena: String): Result<Boolean> = withContext(ioDispatcher) {
         try {
+            val idCarrera = when {
+                aspirante.carrera.contains("Automotriz", ignoreCase = true) -> 2
+                aspirante.carrera.contains("Ambiental", ignoreCase = true) -> 3
+                aspirante.carrera.contains("Gestión", ignoreCase = true) -> 4
+                aspirante.carrera.contains("Industrial", ignoreCase = true) -> 5
+                aspirante.carrera.contains("Electrónica", ignoreCase = true) -> 6
+                aspirante.carrera.contains("Semiconductores", ignoreCase = true) -> 7
+                aspirante.carrera.contains("Gastronomía", ignoreCase = true) -> 8
+                else -> 1
+            }
+
             val request = RegisterRequestDto(
                 nombre = aspirante.nombreCompleto.substringBeforeLast(" ", aspirante.nombreCompleto),
                 apellidos = aspirante.nombreCompleto.substringAfterLast(" ", ""),
                 curp = aspirante.curp,
                 correo = aspirante.email,
                 telefono = aspirante.telefono,
-                idCarrera = 1,
-                contrasena = contrasena
+                idCarrera = idCarrera,
+                contrasena = contrasena,
+                direccion = aspirante.direccion,
+                idEstado = 11,
+                idMunicipio = 1
             )
             val response = apiService.register(request)
             sessionManager.saveSession(
                 token = response.token,
+                refreshToken = response.refreshToken,
                 userId = response.usuario.idUsuario,
                 aspiranteId = response.aspirante?.idAspirante,
                 role = response.usuario.rol,
                 email = response.usuario.correo
             )
+
+            // Persistir usuario en Room
+            val userEntity = UsuarioEntity(
+                idUsuario = response.usuario.idUsuario,
+                nombre = response.usuario.nombre,
+                apellidos = response.usuario.apellidos,
+                nombreUsuario = response.usuario.nombreUsuario,
+                correo = response.usuario.correo,
+                rol = response.usuario.rol,
+                activo = response.usuario.activo
+            )
+            usuarioDao.insertOrUpdate(userEntity)
+
+            // Persistir aspirante retornado de MySQL en Room
+            response.aspirante?.let { aspDto ->
+                val aspiranteEntity = AspiranteEntity(
+                    idAspirante = aspDto.idAspirante,
+                    idUsuario = aspDto.idUsuario,
+                    folio = aspDto.folio,
+                    curp = aspDto.curp,
+                    telefono = aspDto.telefono,
+                    direccion = aspDto.direccion ?: "",
+                    idEstado = aspDto.idEstado,
+                    idMunicipio = aspDto.idMunicipio,
+                    idCarrera = aspDto.idCarrera,
+                    promedioBachillerato = aspDto.promedioBachillerato ?: 9.0,
+                    estadoInscripcion = aspDto.estadoInscripcion
+                )
+                aspiranteDao.insertOrUpdate(aspiranteEntity)
+            }
+
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
@@ -959,26 +1005,18 @@ class InscripcionesRepositoryImpl(
         direccion: String,
         contrasena: String
     ): Result<Boolean> {
-        val aspirante = currentAspirante.copy(
+        val aspirante = Aspirante(
+            id = "0",
             nombreCompleto = nombreCompleto,
             curp = curp.uppercase(),
             email = email,
             telefono = telefono,
             carrera = carrera,
             direccion = direccion,
-            folioAspirante = "ITSUR-2026-" + (100..999).random(),
+            folioAspirante = "",
             estadoInscripcion = EstadoInscripcion.PENDIENTE
         )
-        val remoto = registrarAspirante(aspirante, contrasena)
-        if (remoto.isSuccess) return remoto
-        val error = remoto.exceptionOrNull()
-        return if (error is java.io.IOException) {
-            // Sin conexión con la Web API: se conserva el registro en modo demostración
-            currentAspirante = aspirante
-            Result.success(true)
-        } else {
-            remoto
-        }
+        return registrarAspirante(aspirante, contrasena)
     }
 
     override suspend fun registrarComprobantePago(

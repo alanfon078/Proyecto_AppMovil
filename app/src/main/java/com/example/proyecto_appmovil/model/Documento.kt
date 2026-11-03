@@ -17,9 +17,7 @@ enum class TipoDocumento(val titulo: String, val descripcion: String, val obliga
     CERTIFICADO_BACHILLERATO("Certificado de Bachillerato", "O constancia de estudios con promedio", true),
     CURP("CURP Certificada", "Formato actualizado emitido por RENAPO", true),
     COMPROBANTE_DOMICILIO("Comprobante de Domicilio", "Agua, luz o teléfono (máximo 3 meses)", true),
-    FOTO_INFANTIL("Fotografía Digital", "Fondo blanco, tipo credencial", true),
-    COMPROBANTE_PAGO("Comprobante de Pago", "Ficha bancaria con sello o transferencia", true),
-    REGLAMENTO_FIRMADO("Reglamento Institucional", "Firmado por el alumno o tutor", false)
+    COMPROBANTE_PAGO("Comprobante de Pago", "Ficha bancaria con sello o transferencia", true)
 }
 
 enum class EstadoDocumento(val etiqueta: String) {

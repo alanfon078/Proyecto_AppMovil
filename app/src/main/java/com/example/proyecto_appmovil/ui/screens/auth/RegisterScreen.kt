@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -74,6 +75,9 @@ fun RegisterContent(
     var municipioExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
         topBar = {
             ItsurTopBar(
                 title = "Registro de Aspirante",
@@ -86,8 +90,8 @@ fun RegisterContent(
                 .fillMaxSize()
                 .background(ItsurOffWhite)
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -293,6 +297,9 @@ fun RegisterContent(
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { onRegistrarClick() }
                 ),
                 modifier = Modifier.fillMaxWidth()
             )

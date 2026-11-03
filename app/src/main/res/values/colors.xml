@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Paleta oficial seleccionada (Azules y Grises) -->
+    <color name="blue_sky">#FFACD0F2</color>      <!-- ACDOF2 -->
+    <color name="blue_pastel">#FFA7C7E4</color>   <!-- A7C7E4 -->
+    <color name="blue_steel">#FFA2BDD7</color>    <!-- A2BDD7 -->
+    <color name="gray_blue_1">#FF9EB4CA</color>   <!-- 9EB4CA -->
+    <color name="gray_blue_2">#FF99ABBE</color>   <!-- 99ABBE -->
+    <color name="slate">#FF94A3B1</color>         <!-- 94A3B1 -->
+    <color name="gray_cool">#FF8A9198</color>     <!-- 8A9198 -->
+    <color name="gray_medium">#FF85898C</color>   <!-- 85898C -->
+    <color name="gray_neutral">#FF808080</color>  <!-- 808080 -->
+
+    <!-- Identidad primaria y alto contraste -->
+    <color name="primary_navy">#FF1E3A5F</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

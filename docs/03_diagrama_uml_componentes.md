@@ -18,7 +18,7 @@ flowchart TD
     subgraph PRESENTATION["Capa de Presentación y Navegación (UI Layer)"]
         ACT["«ComponentActivity»\nMainActivity\nsetContent + Proyecto_AppMovilTheme"]
         NAV["«Navigation»\nAppNavHost + Screen\nControl de rutas por rol (aspirante / escolar)\ny limpieza de backstack popUpTo"]
-        SCREENS["«Jetpack Compose Screens»\n• LoginScreen / RegisterScreen\n• HomeScreen (Dashboard)\n• DocumentsScreen (SAF + SHA-256)\n• ProfileScreen / StatusScreen\n• NotificationsScreen / PaymentScreen\n• CredentialPhotoScreen / AdminHomeScreen"]
+        SCREENS["«Jetpack Compose Screens»\n• LoginScreen / RegisterScreen\n• HomeScreen (Dashboard)\n• DocumentsScreen (SAF + SHA-256)\n• ProfileScreen / StatusScreen\n• NotificationsScreen / PaymentScreen\n• AdminHomeScreen / AdminFechasScreen"]
         VMS["«AndroidX ViewModels»\nStateFlow<UiState> reactivo\nInyectados vía AppViewModelProvider.Factory"]
     end
 

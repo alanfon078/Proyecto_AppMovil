@@ -16,9 +16,7 @@ import com.example.proyecto_appmovil.ui.screens.documents.DocumentsScreen
 import com.example.proyecto_appmovil.ui.screens.home.HomeScreen
 import com.example.proyecto_appmovil.ui.screens.notifications.NotificationsScreen
 import com.example.proyecto_appmovil.ui.screens.payment.PaymentScreen
-import com.example.proyecto_appmovil.ui.screens.photo.CredentialPhotoScreen
 import com.example.proyecto_appmovil.ui.screens.profile.ProfileScreen
-import com.example.proyecto_appmovil.ui.screens.reglamento.ReglamentoScreen
 import com.example.proyecto_appmovil.ui.screens.status.StatusScreen
 
 @Composable
@@ -73,9 +71,7 @@ fun AppNavHost(
                 onNavigateToStatus = { navController.navigate(Screen.Status.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
-                onNavigateToPhoto = { navController.navigate(Screen.CredentialPhoto.route) },
                 onNavigateToPayment = { navController.navigate(Screen.Payment.route) },
-                onNavigateToReglamento = { navController.navigate(Screen.Reglamento.route) },
                 onLogout = logout
             )
         }
@@ -100,16 +96,8 @@ fun AppNavHost(
             NotificationsScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        composable(Screen.CredentialPhoto.route) {
-            CredentialPhotoScreen(onNavigateBack = { navController.popBackStack() })
-        }
-
         composable(Screen.Payment.route) {
             PaymentScreen(onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable(Screen.Reglamento.route) {
-            ReglamentoScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // ── MÓDULO ADMIN (CONTROL ESCOLAR) ────────────────────────────────

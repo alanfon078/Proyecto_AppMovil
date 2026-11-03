@@ -37,8 +37,8 @@ class LoginViewModel(
     fun setDemoAspirante() {
         _uiState.update {
             it.copy(
-                usuario = "aspirante@itsur.edu.mx",
-                contrasena = "123456",
+                usuario = "alan.fonseca@alumnos.itsur.edu.mx",
+                contrasena = "itsur2026",
                 errorUsuario = null,
                 errorContrasena = null
             )
@@ -48,7 +48,7 @@ class LoginViewModel(
     fun setDemoEscolar() {
         _uiState.update {
             it.copy(
-                usuario = "escolar@itsur.edu.mx",
+                usuario = "escolar.admin@itsur.edu.mx",
                 contrasena = "admin123",
                 errorUsuario = null,
                 errorContrasena = null
