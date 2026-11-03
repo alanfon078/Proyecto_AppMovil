@@ -1,0 +1,57 @@
+Actúa como Arquitecto de Software y Desarrollador Full-Stack Android / Node.js. Tu objetivo es materializar las transacciones de negocio reales (cumpliendo con al menos el 50% del negocio planteado en base de datos local Room y en la Web API con Retrofit) y generar la documentación formal completa de requerimientos y arquitectura requerida para el Segundo Entregable:
+
+1. Implementación de Transacciones CRUD en Base de Datos Local (SQLite-Room) y Web API (Retrofit):
+   Garantiza que la aplicación ejecute transacciones activas de negocio cubriendo las operaciones de:
+   - AGREGAR (Create):
+     * Registrar nuevo aspirante: transacción que envía los datos a la API (POST /auth/register), recibe token y datos de aspirante, e inserta las entidades UsuarioEntity y AspiranteEntity en Room.
+     * Cargar documento / multimedia: al seleccionar un archivo PDF o imagen, se genera la copia interna, se calcula el hash SHA-256, se inserta en DocumentoEntity (Room) con estado 'SUBIDO' / 'pendiente' y se envía vía Retrofit con @Multipart al endpoint POST /aspirantes/me/documentos.
+     * Registrar comprobante de pago: formulario que guarda ComprobantePagoEntity en Room y lo sincroniza mediante POST /aspirantes/me/pago.
+   - EDITAR (Update):
+     * Actualizar datos personales: pantalla de perfil modifica nombre, teléfono o dirección; se envía PUT /aspirantes/me y actualiza AspiranteEntity en Room mediante Flow reactivo.
+     * Marcar notificación como leída: evento en la lista de notificaciones que ejecuta PATCH /notificaciones/{id}/leida y actualiza NotificacionEntity.leida = true en Room, recalculando el badge del Home.
+     * Revisión de Control Escolar: registrar dictamen (POST /admin/documentos/{id}/revision) que actualiza el estado del documento, recalcula el estatus del aspirante y genera una notificación.
+   - VER / LISTAR (Read):
+     * Listado reactivo de documentos vigentes mediante DocumentoDao.getDocumentosFlow() en DocumentsViewModel.
+     * Listado de notificaciones y fechas importantes desde Room con sincronización de la API.
+     * Dashboard del aspirante: consulta agregada de documentos aprobados, requeridos y notificaciones no leídas mostradas en HomeScreen.
+   - ELIMINAR (Delete):
+     * Eliminar documento: borrado de documentos no aprobados (DELETE /documentos/{id}) tanto en el servidor como en Room mediante DocumentoDao.deleteById(id).
+     * Eliminar notificación: swipe o botón de borrado que elimina la fila en NotificacionDao y notifica a DELETE /notificaciones/{id}.
+   - RECUPERAR (Restore / Cache Sync):
+     * Recuperación de sesión: al iniciar la app, validar token guardado en DataStore; si está expirado, refrescar automáticamente con POST /auth/refresh; si es válido, recuperar datos del aspirante desde Room sin requerir red.
+     * Sincronización de catálogos: descarga y almacenamiento en Room de carreras, estados y municipios para funcionamiento offline.
+
+2. Servidor Web API de Respaldo para Pruebas (Node.js / Express o Mock Server):
+   - Provee o configura un servidor local en Node.js (carpeta /server) o interceptor de pruebas en http://10.0.2.2:3000/api/v1/ que responda con códigos HTTP reales (200, 201, 400, 401, 404, 409, 422) y serialice los JSON esperados según el contrato de API especificado en FEATURES_PROYECTO_INSCRIPCIONES.md, permitiendo comprobar el funcionamiento extremo a extremo de las peticiones desde el emulador o dispositivo móvil.
+
+3. Documentación Técnica y Diagramas de Arquitectura (Criterio Oficial de Aceptación 1):
+   Genera en la carpeta docs/ (en formato Markdown y con diagramas en sintaxis Mermaid soportada: flowchart, sequenceDiagram, erDiagram o classDiagram) los entregables documentales exigidos:
+   
+   A) Diagrama de Base de Datos Relacional Completo:
+      - Diagrama E-R y relacional con todas las entidades (usuarios, aspirantes, documentos, tipos_documento, revisiones, notificaciones, fechas_importantes, pagos, firmas_reglamento, carreras, estados, municipios).
+      - Especificación de llaves primarias (PK), llaves foráneas (FK), tipos de datos de MySQL y restricciones (UNIQUE, NOT NULL, CHECK, ENUMs).
+   
+   B) Diagrama UML de Paquetes:
+      - Organización jerárquica de la arquitectura de la app Android bajo com.example.proyecto_appmovil:
+        * di (AppContainer, DefaultAppContainer)
+        * data.local (AppDatabase, dao, entity)
+        * data.remote (api, dto, RetrofitClient)
+        * data.repository (interfaces e implementaciones)
+        * model (modelos de dominio y enums)
+        * navigation (AppNavHost, Screen)
+        * ui.screens (auth, home, documents, status, profile, notifications, photo, payment, admin)
+        * ui.components (widgets reutilizables)
+        * ui.theme (Color, Theme, Type)
+   
+   C) Diagrama UML de Componentes:
+      - Mapeo detallado de la cadena de dependencias:
+        Application (InscripcionesApp) -> Activity (MainActivity) -> Navigation (NavHost) -> Compose Screens -> ViewModels (StateFlow) -> Repository (InscripcionesRepository) -> [LocalDataSource (Room AppDatabase / DAOs) | RemoteDataSource (Retrofit ApiService / OkHttp)].
+   
+   D) Diagrama UML de Despliegue:
+      - Nodo Dispositivo Android (Cliente móvil con Jetpack Compose, SQLite-Room, Retrofit y almacenamiento interno).
+      - Protocolo HTTPS / REST con intercambio de JSON y multipart/form-data.
+      - Nodo Servidor Web / API REST (Node.js con Express, Multer, JWT, Helmet).
+      - Nodo Base de Datos (MySQL 8 / InnoDB con pool de conexiones mysql2).
+      - Sistema de Archivos (/uploads para resguardo de PDFs, fotos y comprobantes).
+
+Asegura que los diagramas sean visualmente impecables, que la cobertura CRUD supere el 50% de las funciones del negocio y que la aplicación demuestre transaccionalidad real tanto con la base de datos local como con la Web API.
