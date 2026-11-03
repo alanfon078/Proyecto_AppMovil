@@ -8,7 +8,8 @@ data class Documento(
     val tamanoBytes: Long = 0,
     val fechaSubida: String? = null,
     val estado: EstadoDocumento = EstadoDocumento.PENDIENTE,
-    val observaciones: String = ""
+    val observaciones: String = "",
+    val version: Int = 1
 )
 
 enum class TipoDocumento(val titulo: String, val descripcion: String, val obligatorio: Boolean) {

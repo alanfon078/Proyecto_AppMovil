@@ -10,4 +10,12 @@ sealed class Screen(val route: String) {
     object Notifications : Screen("notifications")
     object CredentialPhoto : Screen("credential_photo")
     object Payment : Screen("payment")
+    object Reglamento : Screen("reglamento")
+
+    // Módulos para rol Escolar / Administrador
+    object AdminHome : Screen("admin_home")
+    object AdminFechas : Screen("admin_fechas")
+    object AdminAspiranteDetail : Screen("admin_aspirante/{aspiranteId}") {
+        fun createRoute(aspiranteId: String): String = "admin_aspirante/$aspiranteId"
+    }
 }

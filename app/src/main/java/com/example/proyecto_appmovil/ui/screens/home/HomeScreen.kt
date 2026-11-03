@@ -1,7 +1,6 @@
 package com.example.proyecto_appmovil.ui.screens.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,16 +9,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.model.Aspirante
+import com.example.proyecto_appmovil.model.EstadoInscripcion
+import com.example.proyecto_appmovil.ui.AppViewModelProvider
+import com.example.proyecto_appmovil.ui.components.ItsurTopBar
+import com.example.proyecto_appmovil.ui.components.OptionCard
+import com.example.proyecto_appmovil.ui.components.StatusChip
+import com.example.proyecto_appmovil.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToDocuments: () -> Unit,
@@ -28,131 +33,192 @@ fun HomeScreen(
     onNavigateToNotifications: () -> Unit,
     onNavigateToPhoto: () -> Unit,
     onNavigateToPayment: () -> Unit,
+    onNavigateToReglamento: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.cargarDatos()
+    }
+
+    HomeContent(
+        uiState = uiState,
+        onNavigateToDocuments = onNavigateToDocuments,
+        onNavigateToStatus = onNavigateToStatus,
+        onNavigateToProfile = onNavigateToProfile,
+        onNavigateToNotifications = onNavigateToNotifications,
+        onNavigateToPhoto = onNavigateToPhoto,
+        onNavigateToPayment = onNavigateToPayment,
+        onNavigateToReglamento = onNavigateToReglamento,
+        onLogout = onLogout
+    )
+}
+
+@Composable
+fun HomeContent(
+    uiState: HomeUiState,
+    onNavigateToDocuments: () -> Unit,
+    onNavigateToStatus: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToPhoto: () -> Unit,
+    onNavigateToPayment: () -> Unit,
+    onNavigateToReglamento: () -> Unit,
+    onLogout: () -> Unit
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Menú Principal",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Cerrar sesión",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                }
+            ItsurTopBar(
+                title = "Menú Principal",
+                onLogout = onLogout
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(ItsurOffWhite)
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Tarjeta de bienvenida del aspirante
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 20.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "¡Bienvenido, Aspirante!",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = ItsurVinoOscuro
+                        )
+                        StatusChip(status = uiState.aspirante?.estadoInscripcion?.name ?: "EN_REVISION")
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Text(
-                        text = "¡Bienvenido, Aspirante!",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = uiState.aspirante?.nombreCompleto ?: "Aspirante ITSUR",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ItsurVinoOscuro
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+
                     Text(
-                        text = "Selecciona una opción para continuar con tu proceso de nuevo ingreso:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = "Folio: ${uiState.aspirante?.folioAspirante ?: "ITSUR-2026-0042"} • ${uiState.aspirante?.carrera ?: ""}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ItsurOnSurfaceVariant
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    HorizontalDivider(color = ItsurVinoOscuro.copy(alpha = 0.2f))
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Avance de Documentos:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ItsurOnSurfaceVariant
+                        )
+                        Text(
+                            text = "${uiState.documentosSubidosCount} de ${uiState.totalDocumentosCount} completados",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = ItsurCiruela
+                        )
+                    }
                 }
             }
 
-            // Opciones del Menú
-            MenuOptionCard(
+            // Opciones del Menú (6 tarjetas principales + reglamento)
+            OptionCard(
                 titulo = "Carga de Documentos",
                 descripcion = "Sube tus archivos PDF (Acta, CURP, Certificado)",
                 icono = Icons.Default.CloudUpload,
+                badgeCount = (uiState.totalDocumentosCount - uiState.documentosSubidosCount).coerceAtLeast(0),
                 onClick = onNavigateToDocuments
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            MenuOptionCard(
+            OptionCard(
                 titulo = "Estatus de Inscripción",
-                descripcion = "Consulta el progreso y validación de tus trámites",
+                descripcion = "Consulta el avance en tiempo real de tu trámite",
                 icono = Icons.Default.Timeline,
                 onClick = onNavigateToStatus
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            MenuOptionCard(
+            OptionCard(
                 titulo = "Datos Personales",
-                descripcion = "Consulta y actualiza tu información y contacto",
+                descripcion = "Revisa y actualiza tu información de contacto",
                 icono = Icons.Default.AccountCircle,
                 onClick = onNavigateToProfile
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            MenuOptionCard(
+            OptionCard(
                 titulo = "Notificaciones y Fechas",
                 descripcion = "Avisos importantes y fechas límite del proceso",
                 icono = Icons.Default.Notifications,
+                badgeCount = uiState.notificacionesNoLeidasCount,
                 onClick = onNavigateToNotifications
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            MenuOptionCard(
+            OptionCard(
                 titulo = "Foto para Credencial",
-                descripcion = "Captura tu fotografía oficial para la credencial",
+                descripcion = "Fotografía digital con fondo blanco para la credencial",
                 icono = Icons.Default.CameraAlt,
                 onClick = onNavigateToPhoto
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            MenuOptionCard(
+            OptionCard(
                 titulo = "Comprobante de Pago",
-                descripcion = "Registra tu ficha de pago o voucher de inscripción",
+                descripcion = "Ficha de pago y reporte del comprobante bancario",
                 icono = Icons.Default.Payment,
                 onClick = onNavigateToPayment
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OptionCard(
+                titulo = "Reglamento Institucional",
+                descripcion = "Lectura de normas y captura de firma electrónica",
+                icono = Icons.Default.Draw,
+                onClick = onNavigateToReglamento
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedButton(
                 onClick = onLogout,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -167,73 +233,35 @@ fun HomeScreen(
                 Text(text = "Cerrar Sesión", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
+@Preview(showBackground = true)
 @Composable
-fun MenuOptionCard(
-    titulo: String,
-    descripcion: String,
-    icono: ImageVector,
-    onClick: () -> Unit
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(14.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icono,
-                    contentDescription = titulo,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = titulo,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = descripcion,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                )
-            }
-
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
+fun HomeScreenPreview() {
+    AppTheme {
+        HomeContent(
+            uiState = HomeUiState(
+                aspirante = Aspirante(
+                    nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
+                    folioAspirante = "ITSUR-2026-0042",
+                    carrera = "Ing. Sistemas Computacionales",
+                    estadoInscripcion = EstadoInscripcion.EN_REVISION
+                ),
+                totalDocumentosCount = 7,
+                documentosSubidosCount = 4,
+                notificacionesNoLeidasCount = 2
+            ),
+            onNavigateToDocuments = {},
+            onNavigateToStatus = {},
+            onNavigateToProfile = {},
+            onNavigateToNotifications = {},
+            onNavigateToPhoto = {},
+            onNavigateToPayment = {},
+            onNavigateToReglamento = {},
+            onLogout = {}
+        )
     }
 }

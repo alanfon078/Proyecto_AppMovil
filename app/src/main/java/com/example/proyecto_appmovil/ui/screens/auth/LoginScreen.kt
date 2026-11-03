@@ -2,45 +2,85 @@ package com.example.proyecto_appmovil.ui.screens.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.ui.AppViewModelProvider
+import com.example.proyecto_appmovil.ui.components.ErrorBanner
+import com.example.proyecto_appmovil.ui.components.ItsurTextField
+import com.example.proyecto_appmovil.ui.components.PrimaryButton
+import com.example.proyecto_appmovil.ui.theme.*
 
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
+    onNavigateToAdminHome: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
 
+    LoginContent(
+        uiState = uiState,
+        onUsuarioChange = viewModel::onUsuarioChange,
+        onContrasenaChange = viewModel::onContrasenaChange,
+        onDemoAspirante = viewModel::setDemoAspirante,
+        onDemoEscolar = viewModel::setDemoEscolar,
+        onLoginClick = {
+            viewModel.login { rol ->
+                if (rol == "escolar") {
+                    onNavigateToAdminHome()
+                } else {
+                    onNavigateToHome()
+                }
+            }
+        },
+        onNavigateToRegister = onNavigateToRegister
+    )
+}
+
+@Composable
+fun LoginContent(
+    uiState: LoginUiState,
+    onUsuarioChange: (String) -> Unit,
+    onContrasenaChange: (String) -> Unit,
+    onDemoAspirante: () -> Unit,
+    onDemoEscolar: () -> Unit,
+    onLoginClick: () -> Unit,
+    onNavigateToRegister: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
+            .background(ItsurOffWhite)
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Encabezado institucional azul
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Banner Institucional Rosa Pastel
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ),
-            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
+            shape = RoundedCornerShape(20.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
@@ -48,19 +88,27 @@ fun LoginScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    imageVector = Icons.Default.School,
+                    contentDescription = null,
+                    tint = ItsurVinoOscuro,
+                    modifier = Modifier.size(44.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "ITSUR",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = ItsurVinoOscuro
                 )
                 Text(
                     text = "Inscripciones de Nuevo Ingreso",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ItsurVinoOscuro
                 )
             }
         }
@@ -69,80 +117,101 @@ fun LoginScreen(
             text = "Iniciar Sesión",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 24.dp)
+            color = ItsurVinoOscuro,
+            modifier = Modifier.padding(bottom = 20.dp)
         )
 
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Usuario o Correo") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Usuario",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary
+        if (uiState.errorMessage != null) {
+            ErrorBanner(mensaje = uiState.errorMessage ?: "")
+        }
+
+        // Selector rápido de demostración
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onDemoAspirante,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Demo Alumno", fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = onDemoEscolar,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Demo Escolar", fontSize = 12.sp)
+            }
+        }
+
+        ItsurTextField(
+            value = uiState.usuario,
+            onValueChange = onUsuarioChange,
+            label = "Usuario o Correo institucional",
+            leadingIcon = Icons.Default.Person,
+            errorMessage = uiState.errorUsuario,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
             ),
-            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Contraseña",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary
+        ItsurTextField(
+            value = uiState.contrasena,
+            onValueChange = onContrasenaChange,
+            label = "Contraseña",
+            leadingIcon = Icons.Default.Lock,
+            isPassword = true,
+            errorMessage = uiState.errorContrasena,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
             ),
-            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        Button(
-            onClick = {
-                if (username.isNotBlank() && password.isNotBlank()) {
-                    onNavigateToHome()
-                }
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-        ) {
-            Text(text = "Ingresar", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
+        PrimaryButton(
+            text = "Ingresar",
+            isLoading = uiState.isLoading,
+            onClick = onLoginClick
+        )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(onClick = onNavigateToRegister) {
             Text(
                 text = "¿No tienes cuenta? Regístrate aquí",
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
+                color = ItsurCiruela,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
             )
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    AppTheme {
+        LoginContent(
+            uiState = LoginUiState(usuario = "aspirante@itsur.edu.mx"),
+            onUsuarioChange = {},
+            onContrasenaChange = {},
+            onDemoAspirante = {},
+            onDemoEscolar = {},
+            onLoginClick = {},
+            onNavigateToRegister = {}
+        )
     }
 }
