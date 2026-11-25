@@ -12,12 +12,14 @@ import com.example.proyecto_appmovil.data.local.dao.CatalogosDao
 import com.example.proyecto_appmovil.data.local.dao.DocumentoDao
 import com.example.proyecto_appmovil.data.local.dao.FechaImportanteDao
 import com.example.proyecto_appmovil.data.local.dao.NotificacionDao
+import com.example.proyecto_appmovil.data.local.dao.PreguntaDudaDao
 import com.example.proyecto_appmovil.data.local.dao.UsuarioDao
 import com.example.proyecto_appmovil.data.local.entity.AspiranteEntity
 import com.example.proyecto_appmovil.data.local.entity.CarreraEntity
 import com.example.proyecto_appmovil.data.local.entity.DocumentoEntity
 import com.example.proyecto_appmovil.data.local.entity.FechaImportanteEntity
 import com.example.proyecto_appmovil.data.local.entity.NotificacionEntity
+import com.example.proyecto_appmovil.data.local.entity.PreguntaDudaEntity
 import com.example.proyecto_appmovil.data.local.entity.UsuarioEntity
 
 @Database(
@@ -27,7 +29,8 @@ import com.example.proyecto_appmovil.data.local.entity.UsuarioEntity
         DocumentoEntity::class,
         NotificacionEntity::class,
         FechaImportanteEntity::class,
-        CarreraEntity::class
+        CarreraEntity::class,
+        PreguntaDudaEntity::class
     ],
     version = 2,
     exportSchema = false
@@ -40,6 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun notificacionDao(): NotificacionDao
     abstract fun fechaImportanteDao(): FechaImportanteDao
     abstract fun catalogosDao(): CatalogosDao
+    abstract fun preguntaDudaDao(): PreguntaDudaDao
 
     companion object {
         @Volatile
@@ -137,6 +141,20 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("INSERT INTO carreras_v2 SELECT idCarrera, nombre, activa FROM carreras")
                 db.execSQL("DROP TABLE carreras")
                 db.execSQL("ALTER TABLE carreras_v2 RENAME TO carreras")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS preguntas_dudas (
+                        idPregunta INTEGER NOT NULL PRIMARY KEY,
+                        nombreCompleto TEXT NOT NULL,
+                        folio TEXT NOT NULL,
+                        carrera TEXT NOT NULL,
+                        categoria TEXT NOT NULL,
+                        pregunta TEXT NOT NULL,
+                        estado TEXT NOT NULL,
+                        respuesta TEXT,
+                        fechaCreacion TEXT NOT NULL,
+                        fechaRespuesta TEXT
+                    )
+                """.trimIndent())
             }
         }
     }

@@ -2,13 +2,17 @@ package com.example.proyecto_appmovil.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.proyecto_appmovil.data.local.entity.NotificacionEntity
 
 @Dao
 interface NotificacionDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notificaciones: List<NotificacionEntity>)
+
+    @Query("SELECT * FROM notificaciones ORDER BY idRemoto ASC")
+    suspend fun getAll(): List<NotificacionEntity>
 
     @Query("UPDATE notificaciones SET leida = 1 WHERE idRemoto = :id")
     suspend fun marcarLeida(id: Long)

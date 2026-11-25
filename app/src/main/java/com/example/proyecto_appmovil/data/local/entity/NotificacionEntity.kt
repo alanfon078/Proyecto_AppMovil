@@ -28,5 +28,6 @@ data class NotificacionEntity(
     val titulo: String,
     val mensaje: String,
     val leida: Boolean = false,
-    val fechaEnvio: String
+    val fechaEnvio: String,
+    val idPregunta: Long? = null
 )

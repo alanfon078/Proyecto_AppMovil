@@ -87,6 +87,165 @@ router.get('/aspirantes/me/documentos', documentos.getMisDocumentos);
 router.post('/aspirantes/me/documentos', documentos.recibirArchivo, documentos.subirDocumento);
 router.delete('/documentos/:id', requireAuth, requireRole('aspirante'), documentos.eliminarDocumento);
 
+const preguntaInput = z.object({
+  categoria: z.enum(['fechas', 'documentos']),
+  pregunta: z.string().trim().min(1, 'Escribe tu pregunta').max(5000)
+});
+
+router.post('/aspirantes/me/preguntas', route(async (req, res) => {
+  const data = preguntaInput.parse(req.body);
+  const [result] = await pool.execute(
+    'INSERT INTO preguntas_dudas (id_aspirante, categoria, pregunta, estado) VALUES (?, ?, ?, \'pendiente\')',
+    [req.user.idAspirante, data.categoria, data.pregunta]
+  );
+  const [[pregunta]] = await pool.execute(
+    'SELECT id_pregunta, categoria, pregunta, estado, respuesta, fecha_creacion, fecha_respuesta' +
+    ' FROM preguntas_dudas WHERE id_pregunta = ?',
+    [result.insertId]
+  );
+  res.status(201).json({
+    idPregunta: pregunta.id_pregunta,
+    categoria: pregunta.categoria,
+    pregunta: pregunta.pregunta,
+    estado: pregunta.estado,
+    respuesta: pregunta.respuesta,
+    fechaCreacion: pregunta.fecha_creacion,
+    fechaRespuesta: pregunta.fecha_respuesta
+  });
+}));
+
+router.get('/aspirantes/me/preguntas', route(async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT id_pregunta, categoria, pregunta, estado, respuesta, fecha_creacion, fecha_respuesta' +
+    ' FROM preguntas_dudas WHERE id_aspirante = ? ORDER BY fecha_creacion DESC, id_pregunta DESC',
+    [req.user.idAspirante]
+  );
+  res.json(rows.map(row => ({
+    idPregunta: row.id_pregunta,
+    categoria: row.categoria,
+    pregunta: row.pregunta,
+    estado: row.estado,
+    respuesta: row.respuesta,
+    fechaCreacion: row.fecha_creacion,
+    fechaRespuesta: row.fecha_respuesta
+  })));
+}));
+
+const filtroPreguntas = z.object({
+  categoria: z.enum(['fechas', 'documentos']).optional(),
+  estado: z.enum(['pendiente', 'respondida']).optional()
+});
+
+router.get('/admin/preguntas', route(async (req, res) => {
+  const { categoria, estado } = filtroPreguntas.parse(req.query);
+  const filtros = [];
+  const params = [];
+  if (categoria) {
+    filtros.push('p.categoria = ?');
+    params.push(categoria);
+  }
+  if (estado) {
+    filtros.push('p.estado = ?');
+    params.push(estado);
+  }
+  const where = filtros.length ? ' WHERE ' + filtros.join(' AND ') : '';
+  const [rows] = await pool.execute(
+    'SELECT p.id_pregunta, p.categoria, p.pregunta, p.estado, p.respuesta,' +
+    ' p.fecha_creacion, p.fecha_respuesta, a.folio, c.nombre_carrera AS carrera,' +
+    ' CONCAT(TRIM(CONCAT(u.nombre, \' \', u.apellidos))) AS nombre_completo' +
+    ' FROM preguntas_dudas p' +
+    ' JOIN aspirantes a ON a.id_aspirante = p.id_aspirante' +
+    ' JOIN usuarios u ON u.id_usuario = a.id_usuario' +
+    ' JOIN carreras c ON c.id_carrera = a.id_carrera' +
+    where + ' ORDER BY p.fecha_creacion DESC, p.id_pregunta DESC',
+    params
+  );
+  res.json(rows.map(row => ({
+    idPregunta: row.id_pregunta,
+    idAspirante: null,
+    nombreCompleto: row.nombre_completo,
+    folio: row.folio,
+    carrera: row.carrera,
+    categoria: row.categoria,
+    pregunta: row.pregunta,
+    estado: row.estado,
+    respuesta: row.respuesta,
+    fechaCreacion: row.fecha_creacion,
+    fechaRespuesta: row.fecha_respuesta
+  })));
+}));
+
+const respuestaInput = z.object({
+  respuesta: z.string().trim().min(1, 'Escribe una respuesta').max(5000)
+});
+
+router.post('/admin/preguntas/:id/responder', route(async (req, res) => {
+  const idPregunta = idSchema.parse(req.params.id);
+  const data = respuestaInput.parse(req.body);
+  const result = await inTransaction(async connection => {
+    const [[pregunta]] = await connection.execute(
+      'SELECT p.id_pregunta, p.id_aspirante, a.id_usuario' +
+      ' FROM preguntas_dudas p JOIN aspirantes a ON a.id_aspirante = p.id_aspirante' +
+      ' WHERE p.id_pregunta = ? FOR UPDATE',
+      [idPregunta]
+    );
+    requireFound(pregunta, 'QUESTION_NOT_FOUND', 'Pregunta no encontrada');
+    await connection.execute(
+      'UPDATE preguntas_dudas SET respuesta = ?, estado = \'respondida\',' +
+      ' id_admin_respuesta = ?, fecha_respuesta = NOW() WHERE id_pregunta = ?',
+      [data.respuesta, req.user.idUsuario, idPregunta]
+    );
+    await connection.execute(
+      'INSERT INTO notificaciones (id_usuario, tipo, id_pregunta, titulo, mensaje)' +
+      ' VALUES (?, \'duda\', ?, ?, ?)',
+      [
+        pregunta.id_usuario,
+        idPregunta,
+        'Respuesta a tu pregunta',
+        data.respuesta
+      ]
+    );
+    const [[actualizada]] = await connection.execute(
+      'SELECT id_pregunta, categoria, pregunta, estado, respuesta, fecha_creacion, fecha_respuesta' +
+      ' FROM preguntas_dudas WHERE id_pregunta = ?',
+      [idPregunta]
+    );
+    return actualizada;
+  });
+  res.json({
+    idPregunta: result.id_pregunta,
+    categoria: result.categoria,
+    pregunta: result.pregunta,
+    estado: result.estado,
+    respuesta: result.respuesta,
+    fechaCreacion: result.fecha_creacion,
+    fechaRespuesta: result.fecha_respuesta
+  });
+}));
+
+const avisoGeneralInput = z.object({
+  titulo: z.string().trim().min(1, 'Indica el título del aviso').max(150),
+  mensaje: z.string().trim().min(1, 'Escribe el mensaje del aviso').max(5000)
+});
+
+router.post('/admin/notificaciones/aviso-general', route(async (req, res) => {
+  const data = avisoGeneralInput.parse(req.body);
+  const notificados = await inTransaction(async connection => {
+    const [usuarios] = await connection.execute(
+      'SELECT u.id_usuario FROM usuarios u JOIN aspirantes a ON a.id_usuario = u.id_usuario' +
+      ' WHERE u.rol = \'aspirante\' AND u.activo = TRUE'
+    );
+    for (const usuario of usuarios) {
+      await connection.execute(
+        'INSERT INTO notificaciones (id_usuario, tipo, titulo, mensaje) VALUES (?, \'aviso_general\', ?, ?)',
+        [usuario.id_usuario, data.titulo, data.mensaje]
+      );
+    }
+    return usuarios.length;
+  });
+  res.status(201).json({ notificados, titulo: data.titulo, mensaje: data.mensaje });
+}));
+
 const notificacionQuery = z.object({
   leida: z.enum(['true', 'false']).transform(value => value === 'true').optional(),
   afterId: z.union([idSchema, z.literal('0')]).optional()
@@ -95,7 +254,7 @@ router.use('/notificaciones', requireAuth);
 
 router.get('/notificaciones', route(async (req, res) => {
   const { leida, afterId } = notificacionQuery.parse(req.query);
-  let sql = 'SELECT id_notificacion, id_usuario, tipo, id_documento, id_fecha, titulo, mensaje, fecha_envio, leida' +
+  let sql = 'SELECT id_notificacion, id_usuario, tipo, id_documento, id_fecha, id_pregunta, titulo, mensaje, fecha_envio, leida' +
     ' FROM notificaciones WHERE id_usuario = ?';
   const params = [req.user.idUsuario];
   if (leida !== undefined) {
@@ -103,11 +262,10 @@ router.get('/notificaciones', route(async (req, res) => {
     params.push(leida);
   }
   if (afterId !== undefined) {
-    sql += ' AND id_notificacion > ? ORDER BY id_notificacion ASC';
     params.push(afterId);
-  } else {
-    sql += ' ORDER BY id_notificacion DESC';
+    sql += ' AND id_notificacion > ?';
   }
+  sql += ' ORDER BY id_notificacion ASC';
   const [rows] = await pool.execute(sql, params);
   res.json(rows.map(row => ({ ...row, leida: Boolean(row.leida) })));
 }));

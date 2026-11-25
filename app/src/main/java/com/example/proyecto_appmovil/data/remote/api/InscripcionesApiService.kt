@@ -13,6 +13,11 @@ import com.example.proyecto_appmovil.data.remote.dto.NotificacionItemDto
 import com.example.proyecto_appmovil.data.remote.dto.RefreshTokenRequestDto
 import com.example.proyecto_appmovil.data.remote.dto.RefreshTokenResponseDto
 import com.example.proyecto_appmovil.data.remote.dto.RegisterRequestDto
+import com.example.proyecto_appmovil.data.remote.dto.CrearPreguntaDto
+import com.example.proyecto_appmovil.data.remote.dto.ResponderPreguntaDto
+import com.example.proyecto_appmovil.data.remote.dto.PreguntaDto
+import com.example.proyecto_appmovil.data.remote.dto.AvisoGeneralDto
+import com.example.proyecto_appmovil.data.remote.dto.AvisoGeneralResponseDto
 import com.example.proyecto_appmovil.data.remote.dto.ResumenAspiranteDto
 import com.example.proyecto_appmovil.data.remote.dto.RevisionDto
 import com.example.proyecto_appmovil.data.remote.dto.RevisionResponseDto
@@ -132,4 +137,31 @@ interface InscripcionesApiService {
 
     @POST("admin/aspirantes/{id}/aprobar")
     suspend fun aprobarAspirante(@Path("id") id: Long): AspiranteDto
+
+    @POST("aspirantes/me/preguntas")
+    suspend fun crearPregunta(@Body request: CrearPreguntaDto): PreguntaDto
+
+    @GET("aspirantes/me/preguntas")
+    suspend fun getMisPreguntas(): List<PreguntaDto>
+
+    @GET("admin/preguntas")
+    suspend fun getPreguntasAdmin(
+        @Query("categoria") categoria: String? = null,
+        @Query("estado") estado: String? = null
+    ): List<PreguntaDto>
+
+    @POST("admin/preguntas/{id}/responder")
+    suspend fun responderPregunta(
+        @Path("id") id: Long,
+        @Body request: ResponderPreguntaDto
+    ): PreguntaDto
+
+    @POST("admin/notificaciones/aviso-general")
+    suspend fun enviarAvisoGeneral(@Body request: AvisoGeneralDto): AvisoGeneralResponseDto
+
+    @GET("notificaciones")
+    suspend fun getNotificacionesNuevas(
+        @Query("leida") leida: Boolean? = false,
+        @Query("afterId") afterId: Long
+    ): List<NotificacionItemDto>
 }
