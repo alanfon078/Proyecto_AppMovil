@@ -275,7 +275,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 #### Tasks de `F09`
 
-- [ ] **F09-01 — Esquema de Base de Datos MySQL para Preguntas/Dudas y Avisos Generales (Req 15, Req 16, Req 17)**
+- [x] **F09-01 — Esquema de Base de Datos MySQL para Preguntas/Dudas y Avisos Generales (Req 15, Req 16, Req 17)**
   - Agregar tabla `preguntas_dudas` en `server/database/schema.sql`:
     - `id_pregunta BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY`
     - `id_aspirante BIGINT UNSIGNED NOT NULL` (FK -> `aspirantes.id_aspirante` ON DELETE CASCADE)
@@ -289,7 +289,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
     - Índices: `KEY ix_preg_filtros (categoria, estado, fecha_creacion)` y `KEY ix_preg_aspirante (id_aspirante)`.
   - Actualizar `notificaciones.tipo` en `schema.sql` a `ENUM('documento', 'fecha', 'duda', 'aviso_general', 'sistema')` y agregar columna opcional `id_pregunta BIGINT UNSIGNED NULL` (FK -> `preguntas_dudas.id_pregunta` ON DELETE SET NULL).
 
-- [ ] **F09-02 — Endpoints REST para Preguntas/Dudas, Aviso General y Consulta Incremental de Notificaciones (Req 15, Req 16, Req 17, Req 18)**
+- [x] **F09-02 — Endpoints REST para Preguntas/Dudas, Aviso General y Consulta Incremental de Notificaciones (Req 15, Req 16, Req 17, Req 18)**
   - **Aspirante (`requireAuth`):**
     - `POST /api/v1/aspirantes/me/preguntas`: valida `categoria` en `['fechas', 'documentos']` y `pregunta` no vacía; inserta en `preguntas_dudas` con `estado = 'pendiente'`.
     - `GET /api/v1/aspirantes/me/preguntas`: retorna historial ordenado por `fecha_creacion DESC` con `estado`, `respuesta`, `fechaCreacion` y `fechaRespuesta`.
@@ -300,20 +300,20 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
   - **Sincronización de Notificaciones (`requireAuth`):**
     - Extender `GET /api/v1/notificaciones` para aceptar `?leida=false&afterId=<ultimoIdNotificado>` y devolver ordenadas las notificaciones nuevas del `req.user.idUsuario` autenticado.
 
-- [ ] **F09-03 — Capa de Datos Android (Modelos, Room, DTOs, Retrofit y Repository) (Req 15, Req 16, Req 17, Req 18)**
+- [x] **F09-03 — Capa de Datos Android (Modelos, Room, DTOs, Retrofit y Repository) (Req 15, Req 16, Req 17, Req 18)**
   - Crear modelo de dominio `PreguntaDuda.kt` (con enums `CategoriaPregunta { FECHAS, DOCUMENTOS }` y `EstadoPregunta { PENDIENTE, RESPONDIDA }`, más metadatos del autor para vista Admin).
   - Crear `PreguntaDudaEntity.kt` y `PreguntaDudaDao.kt`; registrar en `AppDatabase.kt` (incrementando `version = 2`).
   - Crear `PreguntaDto.kt` y `AvisoGeneralDto.kt`; declarar los nuevos endpoints en `InscripcionesApiService.kt`.
   - Exponer y conectar en `InscripcionesRepository` / `InscripcionesRepositoryImpl`: `crearPregunta()`, `getMisPreguntas()`, `getPreguntasAdmin(categoria, estado)`, `responderPregunta()`, `enviarAvisoGeneral()` y `getNotificacionesNuevas(afterId)`.
 
-- [ ] **F09-04 — Módulo Alumno "Preguntas y Dudas" (UI + ViewModel) (Req 15)**
+- [x] **F09-04 — Módulo Alumno "Preguntas y Dudas" (UI + ViewModel) (Req 15)**
   - Agregar tarjeta `"Preguntas y Dudas"` en `HomeScreen.kt` (con badge si hay preguntas recién respondidas) y registrar ruta `Screen.StudentQuestions` en `Screen.kt` y `AppNavHost.kt`.
   - Crear `StudentQuestionsScreen.kt` y `StudentQuestionsViewModel.kt` (registrar en `AppViewModelProvider.kt`) con:
     - Selector desplegable (`ExposedDropdownMenuBox`) obligatorio con exactamente 2 opciones: **`Fechas`** y **`Documentos`**.
     - Campo de texto abierto multilínea (`ItsurTextField(singleLine = false)`) para escribir la duda y botón `"Enviar Pregunta"`.
     - Listado de preguntas realizadas por el alumno mostrando categoría, fecha de envío, chip de estado (`Pendiente de respuesta` / `Respondida`) y tarjeta destacada con la respuesta del administrador + fecha de respuesta cuando ya fue atendida.
 
-- [ ] **F09-05 — Módulo Admin "Preguntas y Dudas" con filtros combinados Tipo × Estado (Req 16, Req 17)**
+- [x] **F09-05 — Módulo Admin "Preguntas y Dudas" con filtros combinados Tipo × Estado (Req 16, Req 17)**
   - Registrar ruta `Screen.AdminQuestions` conectada al Navigation Drawer del Admin (`"Preguntas y Dudas"`).
   - Crear `AdminQuestionsScreen.kt` y `AdminQuestionsViewModel.kt` mostrando en cada tarjeta:
     - **Quién realizó la pregunta:** Nombre completo del aspirante, folio y carrera.
@@ -327,14 +327,14 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
     - Ejemplo de combinación soportada: seleccionar `Documentos` + `Pendientes por responder` (o `Documentos` + `Respondidas`) filtrando en vivo y recargando desde `GET /api/v1/admin/preguntas?categoria=...&estado=...`.
   - Incluir botón `"Responder"` (y `"Editar respuesta"` si se requiere) que abre un diálogo para redactar la respuesta y enviarla a la API, actualizando estado y disparando la notificación para el alumno.
 
-- [ ] **F09-06 — Módulo Admin "Aviso General" a todos los alumnos (Req 16)**
+- [x] **F09-06 — Módulo Admin "Aviso General" a todos los alumnos (Req 16)**
   - Registrar ruta `Screen.AdminBroadcast` conectada al Navigation Drawer del Admin (`"Aviso General"`).
   - Crear `AdminBroadcastScreen.kt` y `AdminBroadcastViewModel.kt` con:
     - Campos obligatorios: `Título del aviso` y `Mensaje para todos los aspirantes`.
     - Botón `"Enviar Aviso General"` con `AlertDialog` de confirmación indicando que llegará a todos los aspirantes registrados.
     - Feedback visual de éxito con total de alumnos notificados y limpieza del formulario.
 
-- [ ] **F09-07 — Notificaciones In-App y en Dispositivo Android (`WorkManager` + `NotificationCompat`, sin Firebase) (Req 15, Req 16)**
+- [x] **F09-07 — Notificaciones In-App y en Dispositivo Android (`WorkManager` + `NotificationCompat`, sin Firebase) (Req 15, Req 16)**
   - Agregar `androidx.work:work-runtime-ktx` en `gradle/libs.versions.toml` y `app/build.gradle.kts`.
   - Declarar `<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />` en `app/src/main/AndroidManifest.xml` y solicitar el permiso en tiempo de ejecución en Android 13+ (`Build.VERSION.SDK_INT >= 33`) al entrar al `HomeScreen` del alumno.
   - Crear `NotificationHelper.kt` (`util/NotificationHelper.kt`):

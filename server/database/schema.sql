@@ -164,15 +164,17 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   id_notificacion BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario BIGINT UNSIGNED NOT NULL,
   id_revision BIGINT UNSIGNED NULL,
-  tipo ENUM('documento', 'fecha', 'sistema') NOT NULL DEFAULT 'sistema',
+  tipo ENUM('documento', 'fecha', 'duda', 'aviso_general', 'sistema') NOT NULL DEFAULT 'sistema',
   id_documento BIGINT UNSIGNED NULL,
   id_fecha INT UNSIGNED NULL,
+  id_pregunta BIGINT UNSIGNED NULL,
   titulo VARCHAR(150) NOT NULL,
   mensaje TEXT NOT NULL,
   leida BOOLEAN NOT NULL DEFAULT FALSE,
   fecha_envio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fecha_lectura DATETIME NULL,
-  KEY ix_not_usuario_leida (id_usuario, leida),
+  KEY ix_not_usuario_leida (id_usuario, leida, id_notificacion),
+  KEY ix_not_pregunta (id_pregunta),
   CONSTRAINT fk_not_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_not_revision FOREIGN KEY (id_revision) REFERENCES revisiones(id_revision)
@@ -182,6 +184,29 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   CONSTRAINT fk_not_fecha FOREIGN KEY (id_fecha) REFERENCES fechas_importantes(id_fecha)
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
+
+-- 10.1 Preguntas y dudas de los aspirantes
+CREATE TABLE IF NOT EXISTS preguntas_dudas (
+  id_pregunta BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  id_aspirante BIGINT UNSIGNED NOT NULL,
+  categoria ENUM('fechas', 'documentos') NOT NULL,
+  pregunta TEXT NOT NULL,
+  estado ENUM('pendiente', 'respondida') NOT NULL DEFAULT 'pendiente',
+  respuesta TEXT NULL,
+  id_admin_respuesta BIGINT UNSIGNED NULL,
+  fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_respuesta DATETIME NULL,
+  KEY ix_preg_filtros (categoria, estado, fecha_creacion),
+  KEY ix_preg_aspirante (id_aspirante),
+  CONSTRAINT fk_preg_aspirante FOREIGN KEY (id_aspirante) REFERENCES aspirantes(id_aspirante)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_preg_admin FOREIGN KEY (id_admin_respuesta) REFERENCES usuarios(id_usuario)
+    ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+ALTER TABLE notificaciones
+  ADD CONSTRAINT fk_not_pregunta FOREIGN KEY (id_pregunta) REFERENCES preguntas_dudas(id_pregunta)
+    ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- 11. Sesiones y Refresh Tokens
 CREATE TABLE IF NOT EXISTS refresh_tokens (
