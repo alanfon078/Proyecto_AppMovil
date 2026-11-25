@@ -168,19 +168,41 @@ function normalizarFechaLimite(raw) {
   return iso.slice(0, 19).replace('T', ' ');
 }
 
+const fechaImportanteInput = z.object({
+  titulo: z.string().trim().min(1, 'Indica el título de la fecha').max(150),
+  descripcion: z.string().trim().max(2000).nullish(),
+  tipo: z.enum(['limite_entrega', 'correcciones', 'revision', 'publicacion', 'otro']).default('limite_entrega'),
+  fecha_limite: z.string().trim()
+});
+
 router.post('/admin/fechas-importantes', route(async (req, res) => {
-  const data = z.object({
-    titulo: z.string().trim().min(1).max(150),
-    descripcion: z.string().trim().max(2000).nullish(),
-    tipo: z.enum(['limite_entrega', 'correcciones', 'revision', 'publicacion', 'otro']).default('limite_entrega'),
-    fecha_limite: z.string().trim()
-  }).parse(req.body);
+  const data = fechaImportanteInput.parse(req.body);
   const [result] = await pool.execute(
     'INSERT INTO fechas_importantes (titulo, descripcion, tipo, fecha_limite, creada_por) VALUES (?, ?, ?, ?, ?)',
     [data.titulo, data.descripcion || null, data.tipo, normalizarFechaLimite(data.fecha_limite), req.user.idUsuario]
   );
   const [[fecha]] = await pool.execute(seleccionarFechas + ' WHERE id_fecha = ?', [result.insertId]);
   res.status(201).json({ ...fecha, activa: Boolean(fecha.activa) });
+}));
+
+router.put('/admin/fechas-importantes/:id', route(async (req, res) => {
+  const id = idSchema.parse(req.params.id);
+  const data = fechaImportanteInput.parse(req.body);
+  const fechaNormalizada = normalizarFechaLimite(data.fecha_limite);
+  const [result] = await pool.execute(
+    'UPDATE fechas_importantes SET titulo = ?, descripcion = ?, tipo = ?, fecha_limite = ? WHERE id_fecha = ? AND activa = TRUE',
+    [data.titulo, data.descripcion || null, data.tipo, fechaNormalizada, id]
+  );
+  requireFound(result.affectedRows, 'FECHA_NOT_FOUND', 'Fecha importante no encontrada');
+  const [[fecha]] = await pool.execute(seleccionarFechas + ' WHERE id_fecha = ?', [id]);
+  res.json({ ...fecha, activa: Boolean(fecha.activa) });
+}));
+
+router.delete('/admin/fechas-importantes/:id', route(async (req, res) => {
+  const id = idSchema.parse(req.params.id);
+  const [result] = await pool.execute('DELETE FROM fechas_importantes WHERE id_fecha = ?', [id]);
+  requireFound(result.affectedRows, 'FECHA_NOT_FOUND', 'Fecha importante no encontrada');
+  res.sendStatus(204);
 }));
 
 const filtroAspirantes = z.object({
@@ -208,6 +230,7 @@ router.get('/admin/aspirantes/:id', route(async (req, res) => {
   res.json(await getAspirante(pool, idSchema.parse(req.params.id)));
 }));
 router.get('/admin/aspirantes/:id/documentos', documentos.getDocumentosAspirante);
+router.get('/admin/documentos/:id/archivo', documentos.descargarArchivoDocumento);
 router.post('/admin/documentos/:id/revision', documentos.revisarDocumento);
 router.post('/admin/aspirantes/:id/aprobar', documentos.aprobarTramite);
 
