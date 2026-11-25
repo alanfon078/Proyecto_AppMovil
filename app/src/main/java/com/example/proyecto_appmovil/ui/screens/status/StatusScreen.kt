@@ -18,12 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyecto_appmovil.model.Aspirante
-import com.example.proyecto_appmovil.model.Documento
-import com.example.proyecto_appmovil.model.EstadoDocumento
-import com.example.proyecto_appmovil.model.EstadoInscripcion
-import com.example.proyecto_appmovil.model.TipoDocumento
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
+import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.components.StatusChip
 import com.example.proyecto_appmovil.ui.theme.*
@@ -72,38 +68,45 @@ fun StatusContent(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Tarjeta de estado general
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                if (uiState.isLoading) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
+            }
+
+            uiState.aspirante?.let { aspirante ->
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Estado General",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ItsurVinoOscuro
+                                )
+                                StatusChip(status = aspirante.estadoInscripcion.name)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Estado General",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
+                                text = aspirante.estadoInscripcion.descripcion,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = ItsurVinoOscuro
                             )
-                            StatusChip(status = uiState.aspirante?.estadoInscripcion?.name ?: "EN_REVISION")
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = uiState.aspirante?.estadoInscripcion?.descripcion ?: "En Proceso",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = ItsurVinoOscuro
-                        )
                     }
                 }
             }
 
             item {
-                // Stepper Visual de 5 Etapas
                 Text(
                     text = "Línea de Tiempo del Trámite",
                     style = MaterialTheme.typography.titleMedium,
@@ -122,14 +125,13 @@ fun StatusContent(
                             "1. Registro de Aspirante",
                             "2. Carga de Documentos",
                             "3. Cotejo y Revisión Escolar",
-                            "4. Pago de Inscripción Acreditado",
-                            "5. Inscripción Concluida"
+                            "4. Documentos aprobados"
                         )
 
                         etapas.forEachIndexed { index, etapa ->
                             val etapaNum = index + 1
-                            val isCompleted = etapaNum < uiState.etapaActual
-                            val isCurrent = etapaNum == uiState.etapaActual
+                            val isCompleted = etapaNum < uiState.etapaActual || uiState.etapaActual == etapas.size
+                            val isCurrent = etapaNum == uiState.etapaActual && !isCompleted
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -158,7 +160,7 @@ fun StatusContent(
                                     } else {
                                         Text(
                                             text = "$etapaNum",
-                                            color = if (isCurrent) Color.White else Color(0xFF757575),
+                                            color = if (isCurrent) Color.White else Color.Black,
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -192,12 +194,12 @@ fun StatusContent(
                         color = ItsurVinoOscuro
                     )
                     TextButton(onClick = onNavigateToDocuments) {
-                        Text("Ir a cargar", color = ItsurCiruela, fontWeight = FontWeight.Bold)
+                        Text("Ir a cargar", color = ItsurOnSurface, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            items(uiState.documentos, key = { it.id }) { doc ->
+            items(uiState.documentos, key = { it.tipo.name }) { doc ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(12.dp),
@@ -235,7 +237,7 @@ fun StatusContent(
                 OutlinedButton(
                     onClick = onNavigateBack,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
@@ -255,18 +257,7 @@ fun StatusContent(
 fun StatusScreenPreview() {
     AppTheme {
         StatusContent(
-            uiState = StatusUiState(
-                aspirante = Aspirante(
-                    nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
-                    folioAspirante = "ITSUR-2026-0042",
-                    estadoInscripcion = EstadoInscripcion.EN_REVISION
-                ),
-                etapaActual = 3,
-                documentos = listOf(
-                    Documento("1", TipoDocumento.ACTA_NACIMIENTO, estado = EstadoDocumento.VALIDADO),
-                    Documento("2", TipoDocumento.CURP, estado = EstadoDocumento.SUBIDO)
-                )
-            ),
+            uiState = StatusUiState(),
             onNavigateBack = {},
             onNavigateToDocuments = {}
         )

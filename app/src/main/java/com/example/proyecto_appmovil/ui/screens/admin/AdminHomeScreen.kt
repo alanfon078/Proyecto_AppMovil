@@ -1,6 +1,8 @@
 package com.example.proyecto_appmovil.ui.screens.admin
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,16 +15,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.proyecto_appmovil.model.Aspirante
-import com.example.proyecto_appmovil.model.EstadoInscripcion
+import com.example.proyecto_appmovil.model.Documento
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
+import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.components.StatusChip
+import com.example.proyecto_appmovil.ui.components.itsurTextFieldColors
 import com.example.proyecto_appmovil.ui.theme.*
 
 @Composable
@@ -34,6 +39,8 @@ fun AdminHomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) { viewModel.cargarAspirantes() }
+
     AdminHomeContent(
         uiState = uiState,
         onNavigateToFechas = onNavigateToFechas,
@@ -42,6 +49,7 @@ fun AdminHomeScreen(
         onBusquedaChange = viewModel::onBusquedaChange,
         onAbrirRevision = viewModel::abrirDialogoRevision,
         onCerrarRevision = viewModel::cerrarDialogoRevision,
+        onSeleccionarDocumento = viewModel::seleccionarDocumento,
         onObservacionesChange = viewModel::onObservacionesChange,
         onResolverRevision = viewModel::resolverRevision
     )
@@ -56,6 +64,7 @@ fun AdminHomeContent(
     onBusquedaChange: (String) -> Unit,
     onAbrirRevision: (Aspirante) -> Unit,
     onCerrarRevision: () -> Unit,
+    onSeleccionarDocumento: (Documento) -> Unit,
     onObservacionesChange: (String) -> Unit,
     onResolverRevision: (Boolean) -> Unit
 ) {
@@ -85,6 +94,14 @@ fun AdminHomeContent(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (uiState.isLoading && uiState.aspiranteSeleccionadoParaRevision == null) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            if (uiState.aspiranteSeleccionadoParaRevision == null) {
+                uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
+                uiState.mensajeExito?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            }
+
             // Tarjetas de Métricas de Control Escolar
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -106,8 +123,8 @@ fun AdminHomeContent(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
-                        Text("Revisión", style = MaterialTheme.typography.labelMedium, color = StatusPendiente)
-                        Text("${uiState.aspirantes.count { it.estadoInscripcion.name == "EN_REVISION" }}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = StatusPendiente)
+                        Text("Revisión", style = MaterialTheme.typography.labelMedium, color = ItsurOnSurface)
+                        Text("${uiState.aspirantes.count { it.estadoInscripcion.name == "EN_REVISION" }}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = ItsurOnSurface)
                     }
                 }
                 Card(
@@ -116,8 +133,8 @@ fun AdminHomeContent(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
-                        Text("Aprobados", style = MaterialTheme.typography.labelMedium, color = StatusAprobado)
-                        Text("${uiState.aspirantes.count { it.estadoInscripcion.name == "ACEPTADO" }}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = StatusAprobado)
+                        Text("Aprobados", style = MaterialTheme.typography.labelMedium, color = ItsurOnSurface)
+                        Text("${uiState.aspirantes.count { it.estadoInscripcion.name == "ACEPTADO" }}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = ItsurOnSurface)
                     }
                 }
             }
@@ -131,12 +148,7 @@ fun AdminHomeContent(
                 label = { Text("Buscar por nombre o número de folio") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = ItsurCiruela) },
                 shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ItsurCiruela,
-                    focusedLabelColor = ItsurCiruela,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                ),
+                colors = itsurTextFieldColors(),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -156,7 +168,7 @@ fun AdminHomeContent(
                 TextButton(onClick = onNavigateToFechas) {
                     Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Fechas Límite", color = ItsurCiruela, fontWeight = FontWeight.Bold)
+                    Text("Fechas Límite", color = ItsurOnSurface, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -214,9 +226,11 @@ fun AdminHomeContent(
                                 }
                                 Button(
                                     onClick = { onAbrirRevision(asp) },
+                                    enabled = !uiState.isLoading && !uiState.cargandoDocumentos,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = ItsurCiruela,
-                                        contentColor = Color.White
+                                        contentColor = Color.White,
+                                        disabledContentColor = Color.Black
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.weight(1f)
@@ -247,23 +261,52 @@ fun AdminHomeContent(
                 text = {
                     Column {
                         Text(
-                            text = "Folio: ${asp.folioAspirante}\nCarrera: ${asp.carrera}\nPromedio: ${asp.promedioBachillerato}",
+                            text = "Folio: ${asp.folioAspirante} • ${asp.carrera}",
                             style = MaterialTheme.typography.bodySmall,
                             color = ItsurOnSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = uiState.observacionesInput,
-                            onValueChange = onObservacionesChange,
-                            label = { Text("Observaciones / Motivo de rechazo") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
+                        when {
+                            uiState.cargandoDocumentos -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            uiState.documentosParaRevision.isEmpty() && uiState.mensajeError == null ->
+                                Text("No hay documentos pendientes de revisión.")
+                            uiState.documentosParaRevision.isNotEmpty() -> {
+                                Column(Modifier.selectableGroup()) {
+                                    uiState.documentosParaRevision.forEach { doc ->
+                                        val seleccionado = doc == uiState.documentoSeleccionado
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().selectable(
+                                                selected = seleccionado,
+                                                onClick = { onSeleccionarDocumento(doc) },
+                                                enabled = !uiState.isLoading,
+                                                role = Role.RadioButton
+                                            ),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(selected = seleccionado, onClick = null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(doc.tipo.titulo)
+                                        }
+                                    }
+                                }
+                                OutlinedTextField(
+                                    value = uiState.observacionesInput,
+                                    onValueChange = onObservacionesChange,
+                                    enabled = !uiState.isLoading,
+                                    label = { Text("Observaciones / Motivo de rechazo") },
+                                    colors = itsurTextFieldColors(),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
                     }
                 },
                 confirmButton = {
                     Button(
                         onClick = { onResolverRevision(true) },
-                        colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado)
+                        enabled = !uiState.isLoading && uiState.documentoSeleccionado != null,
+                        colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado, disabledContentColor = Color.Black)
                     ) {
                         Text("Aprobar")
                     }
@@ -271,7 +314,8 @@ fun AdminHomeContent(
                 dismissButton = {
                     Button(
                         onClick = { onResolverRevision(false) },
-                        colors = ButtonDefaults.buttonColors(containerColor = StatusRechazado)
+                        enabled = !uiState.isLoading && uiState.documentoSeleccionado != null,
+                        colors = ButtonDefaults.buttonColors(containerColor = StatusRechazado, disabledContentColor = Color.Black)
                     ) {
                         Text("Rechazar")
                     }
@@ -286,23 +330,14 @@ fun AdminHomeContent(
 fun AdminHomeScreenPreview() {
     AppTheme {
         AdminHomeContent(
-            uiState = AdminHomeUiState(
-                aspirantes = listOf(
-                    Aspirante(
-                        id = "1",
-                        nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
-                        folioAspirante = "ITSUR-2026-0042",
-                        carrera = "Ing. Sistemas Computacionales",
-                        estadoInscripcion = EstadoInscripcion.EN_REVISION
-                    )
-                )
-            ),
+            uiState = AdminHomeUiState(),
             onNavigateToFechas = {},
             onNavigateToAspiranteDetail = {},
             onLogout = {},
             onBusquedaChange = {},
             onAbrirRevision = {},
             onCerrarRevision = {},
+            onSeleccionarDocumento = {},
             onObservacionesChange = {},
             onResolverRevision = {}
         )

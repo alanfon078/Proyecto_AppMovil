@@ -13,10 +13,7 @@ import com.example.proyecto_appmovil.ui.screens.auth.RegisterViewModel
 import com.example.proyecto_appmovil.ui.screens.documents.DocumentsViewModel
 import com.example.proyecto_appmovil.ui.screens.home.HomeViewModel
 import com.example.proyecto_appmovil.ui.screens.notifications.NotificationsViewModel
-import com.example.proyecto_appmovil.ui.screens.payment.PaymentViewModel
-import com.example.proyecto_appmovil.ui.screens.photo.CredentialPhotoViewModel
 import com.example.proyecto_appmovil.ui.screens.profile.ProfileViewModel
-import com.example.proyecto_appmovil.ui.screens.reglamento.ReglamentoViewModel
 import com.example.proyecto_appmovil.ui.screens.status.StatusViewModel
 
 /**
@@ -45,15 +42,6 @@ object AppViewModelProvider {
         }
         initializer {
             NotificationsViewModel(inscripcionesApp().container.inscripcionesRepository)
-        }
-        initializer {
-            CredentialPhotoViewModel(inscripcionesApp().container.inscripcionesRepository)
-        }
-        initializer {
-            PaymentViewModel(inscripcionesApp().container.inscripcionesRepository)
-        }
-        initializer {
-            ReglamentoViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
             AdminHomeViewModel(inscripcionesApp().container.inscripcionesRepository)

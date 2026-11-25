@@ -5,10 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "carreras")
 data class CarreraEntity(
-    @PrimaryKey
-    val idCarrera: Int,
-    val clave: String,
+    @PrimaryKey val idCarrera: Int,
     val nombre: String,
-    val area: String,
-    val activa: Boolean = true
+    val activa: Boolean
 )

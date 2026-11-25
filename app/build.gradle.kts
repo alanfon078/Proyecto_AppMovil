@@ -1,8 +1,21 @@
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+val apiBaseUrl = providers.gradleProperty("ITSUR_BASE_URL")
+    .orElse(providers.environmentVariable("ITSUR_BASE_URL"))
+    .orElse("http://10.0.2.2:3000/api/v1/")
+    .map {
+        val url = URI(it.trim().trimEnd('/') + "/")
+        require(url.scheme in listOf("http", "https") && url.host != null &&
+            url.rawUserInfo == null && url.rawQuery == null && url.rawFragment == null
+        ) { "ITSUR_BASE_URL must be an HTTP(S) API URL without credentials, query or fragment" }
+        url.toASCIIString()
+    }
 
 android {
     namespace = "com.example.proyecto_appmovil"
@@ -16,6 +29,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField("String", "BASE_URL", "\"${apiBaseUrl.get()}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -33,6 +48,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -45,6 +61,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)

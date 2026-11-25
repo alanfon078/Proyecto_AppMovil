@@ -18,12 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyecto_appmovil.model.FechaImportante
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.EmptyState
+import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTextField
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
-import com.example.proyecto_appmovil.ui.components.PrimaryButton
 import com.example.proyecto_appmovil.ui.theme.*
 
 @Composable
@@ -41,7 +40,6 @@ fun AdminFechasScreen(
         onTituloChange = viewModel::onTituloChange,
         onDescripcionChange = viewModel::onDescripcionChange,
         onFechaLimiteChange = viewModel::onFechaLimiteChange,
-        onDiasRestantesChange = viewModel::onDiasRestantesChange,
         onGuardar = viewModel::guardarNuevaFecha
     )
 }
@@ -55,7 +53,6 @@ fun AdminFechasContent(
     onTituloChange: (String) -> Unit,
     onDescripcionChange: (String) -> Unit,
     onFechaLimiteChange: (String) -> Unit,
-    onDiasRestantesChange: (String) -> Unit,
     onGuardar: () -> Unit
 ) {
     Scaffold(
@@ -119,6 +116,13 @@ fun AdminFechasContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (uiState.isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            if (!uiState.showDialogNuevaFecha) {
+                uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
+            }
+
             if (uiState.mensajeExito != null) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = StatusAprobadoBg),
@@ -127,7 +131,7 @@ fun AdminFechasContent(
                 ) {
                     Text(
                         text = uiState.mensajeExito,
-                        color = StatusAprobado,
+                        color = ItsurOnSurface,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(14.dp)
@@ -145,7 +149,7 @@ fun AdminFechasContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (uiState.fechas.isEmpty()) {
+            if (uiState.fechas.isEmpty() && !uiState.isLoading && uiState.mensajeError == null) {
                 EmptyState(mensaje = "No hay fechas límite registradas")
             } else {
                 LazyColumn(
@@ -195,7 +199,7 @@ fun AdminFechasContent(
                                         text = "Límite: ${fecha.fechaLimite}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = ItsurCiruela
+                                        color = ItsurOnSurface
                                     )
                                 }
 
@@ -205,7 +209,7 @@ fun AdminFechasContent(
                                 ) {
                                     Text(
                                         text = "${fecha.diasRestantes} días",
-                                        color = if (fecha.diasRestantes <= 10) StatusPendiente else ItsurVinoOscuro,
+                                        color = ItsurOnSurface,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -222,7 +226,7 @@ fun AdminFechasContent(
             OutlinedButton(
                 onClick = onNavigateBack,
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -264,26 +268,23 @@ fun AdminFechasContent(
                         ItsurTextField(
                             value = uiState.nuevaFechaLimite,
                             onValueChange = onFechaLimiteChange,
-                            label = "Fecha Límite (ej. 20 de Julio 2026)"
+                            label = "Fecha Límite (AAAA-MM-DD)"
                         )
-                        ItsurTextField(
-                            value = uiState.nuevosDiasRestantes,
-                            onValueChange = onDiasRestantesChange,
-                            label = "Días restantes aproximados"
-                        )
+                        uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
                     }
                 },
                 confirmButton = {
                     Button(
                         onClick = onGuardar,
-                        colors = ButtonDefaults.buttonColors(containerColor = ItsurCiruela)
+                        enabled = !uiState.isLoading,
+                        colors = ButtonDefaults.buttonColors(containerColor = ItsurCiruela, disabledContentColor = Color.Black)
                     ) {
                         Text("Guardar Fecha")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = onCerrarDialogo) {
-                        Text("Cancelar", color = ItsurOutline)
+                    TextButton(onClick = onCerrarDialogo, enabled = !uiState.isLoading) {
+                        Text("Cancelar", color = ItsurOnSurface)
                     }
                 }
             )
@@ -296,19 +297,13 @@ fun AdminFechasContent(
 fun AdminFechasPreview() {
     AppTheme {
         AdminFechasContent(
-            uiState = AdminFechasUiState(
-                fechas = listOf(
-                    FechaImportante("1", "Cierre de Carga", "Fin del periodo de recepción", "15 de Junio 2026", 12),
-                    FechaImportante("2", "Examen CENEVAL", "Aplicación presencial en campus", "20 de Junio 2026", 17)
-                )
-            ),
+            uiState = AdminFechasUiState(),
             onNavigateBack = {},
             onAbrirDialogo = {},
             onCerrarDialogo = {},
             onTituloChange = {},
             onDescripcionChange = {},
             onFechaLimiteChange = {},
-            onDiasRestantesChange = {},
             onGuardar = {}
         )
     }

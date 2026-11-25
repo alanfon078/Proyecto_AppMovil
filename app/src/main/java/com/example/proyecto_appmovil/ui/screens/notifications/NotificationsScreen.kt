@@ -19,9 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyecto_appmovil.model.FechaImportante
-import com.example.proyecto_appmovil.model.Notificacion
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
+import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.EmptyState
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.theme.*
@@ -72,6 +71,8 @@ fun NotificationsContent(
                 Tab(
                     selected = uiState.tabSeleccionada == 0,
                     onClick = { onSetTab(0) },
+                    selectedContentColor = Color.Black,
+                    unselectedContentColor = Color.Black,
                     text = {
                         Text(
                             text = "Avisos (${uiState.notificaciones.count { !it.leida }} nuevos)",
@@ -82,6 +83,8 @@ fun NotificationsContent(
                 Tab(
                     selected = uiState.tabSeleccionada == 1,
                     onClick = { onSetTab(1) },
+                    selectedContentColor = Color.Black,
+                    unselectedContentColor = Color.Black,
                     text = {
                         Text(
                             text = "Fechas Límite",
@@ -90,6 +93,11 @@ fun NotificationsContent(
                     }
                 )
             }
+
+            if (uiState.isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
 
             if (uiState.tabSeleccionada == 0) {
                 // Pestaña de Avisos
@@ -108,7 +116,7 @@ fun NotificationsContent(
                     FilterChip(
                         selected = uiState.soloNoLeidas,
                         onClick = onToggleSoloNoLeidas,
-                        label = { Text("No leídas") }
+                        label = { Text("No leídas", color = Color.Black) }
                     )
                 }
 
@@ -167,7 +175,7 @@ fun NotificationsContent(
                                         Text(
                                             text = notif.fecha,
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = ItsurOutline
+                                            color = ItsurOnSurface
                                         )
                                     }
                                 }
@@ -226,7 +234,7 @@ fun NotificationsContent(
                                         text = "Fecha: ${fecha.fechaLimite}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = ItsurCiruela
+                                        color = ItsurOnSurface
                                     )
                                 }
 
@@ -236,7 +244,7 @@ fun NotificationsContent(
                                 ) {
                                     Text(
                                         text = "${fecha.diasRestantes} días",
-                                        color = if (fecha.diasRestantes <= 10) StatusPendiente else ItsurVinoOscuro,
+                                        color = ItsurOnSurface,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -253,7 +261,7 @@ fun NotificationsContent(
                 OutlinedButton(
                     onClick = onNavigateBack,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
@@ -272,20 +280,7 @@ fun NotificationsContent(
 fun NotificationsScreenPreview() {
     AppTheme {
         NotificationsContent(
-            uiState = NotificationsUiState(
-                notificaciones = listOf(
-                    Notificacion(
-                        id = "1",
-                        titulo = "Revisión completada",
-                        mensaje = "Tus documentos han sido aprobados por Control Escolar.",
-                        fecha = "Hoy, 10:30 AM",
-                        leida = false
-                    )
-                ),
-                fechas = listOf(
-                    FechaImportante("1", "Cierre de Convocatoria", "Entrega de documentos oficiales", "30 de Junio 2026", 15)
-                )
-            ),
+            uiState = NotificationsUiState(),
             onNavigateBack = {},
             onSetTab = {},
             onToggleSoloNoLeidas = {},

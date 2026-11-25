@@ -1,14 +1,38 @@
 package com.example.proyecto_appmovil.data.remote.api
 
-import com.example.proyecto_appmovil.data.remote.dto.*
+import com.example.proyecto_appmovil.data.remote.dto.ActualizarAspiranteRequestDto
+import com.example.proyecto_appmovil.data.remote.dto.AspiranteDto
+import com.example.proyecto_appmovil.data.remote.dto.CambiarPasswordRequestDto
+import com.example.proyecto_appmovil.data.remote.dto.CarreraDto
+import com.example.proyecto_appmovil.data.remote.dto.CrearFechaImportanteDto
+import com.example.proyecto_appmovil.data.remote.dto.DocumentoItemDto
+import com.example.proyecto_appmovil.data.remote.dto.FechaImportanteDto
+import com.example.proyecto_appmovil.data.remote.dto.LoginRequestDto
+import com.example.proyecto_appmovil.data.remote.dto.LoginResponseDto
+import com.example.proyecto_appmovil.data.remote.dto.NotificacionItemDto
+import com.example.proyecto_appmovil.data.remote.dto.RefreshTokenRequestDto
+import com.example.proyecto_appmovil.data.remote.dto.RefreshTokenResponseDto
+import com.example.proyecto_appmovil.data.remote.dto.RegisterRequestDto
+import com.example.proyecto_appmovil.data.remote.dto.ResumenAspiranteDto
+import com.example.proyecto_appmovil.data.remote.dto.RevisionDto
+import com.example.proyecto_appmovil.data.remote.dto.RevisionResponseDto
+import com.example.proyecto_appmovil.data.remote.dto.SubirDocumentoResponseDto
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import retrofit2.Call
 import retrofit2.Response
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.Multipart
+import retrofit2.http.PATCH
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Part
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface InscripcionesApiService {
-
-    // --- Autenticación ---
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequestDto): LoginResponseDto
 
@@ -16,38 +40,26 @@ interface InscripcionesApiService {
     suspend fun register(@Body request: RegisterRequestDto): LoginResponseDto
 
     @POST("auth/refresh")
-    suspend fun refresh(@Body body: Map<String, String>): LoginResponseDto
+    fun refresh(@Body request: RefreshTokenRequestDto): Call<RefreshTokenResponseDto>
 
     @POST("auth/logout")
-    suspend fun logout(): Response<Unit>
+    suspend fun logout(@Body request: RefreshTokenRequestDto): Response<Unit>
 
-    @GET("auth/me")
-    suspend fun getMe(): UserDto
+    @PATCH("auth/password")
+    suspend fun cambiarPassword(@Body request: CambiarPasswordRequestDto): Response<Unit>
 
-    // --- Catálogos ---
     @GET("catalogos/carreras")
     suspend fun getCarreras(): List<CarreraDto>
 
-    @GET("catalogos/estados")
-    suspend fun getEstados(): List<EstadoDto>
-
-    @GET("catalogos/municipios")
-    suspend fun getMunicipios(@Query("idEstado") idEstado: Int? = null): List<MunicipioDto>
-
-    // --- Aspirante (Perfil & Resumen) ---
     @GET("aspirantes/me")
     suspend fun getMiAspirante(): AspiranteDto
 
     @GET("aspirantes/me/resumen")
-    suspend fun getMiResumen(): AspiranteDto
-
-    @GET("aspirantes/me/estatus")
-    suspend fun getMiEstatus(): Map<String, String>
+    suspend fun getMiResumen(): ResumenAspiranteDto
 
     @PUT("aspirantes/me")
-    suspend fun actualizarMiAspirante(@Body body: Map<String, @JvmSuppressWildcards Any?>): AspiranteDto
+    suspend fun actualizarMiAspirante(@Body request: ActualizarAspiranteRequestDto): AspiranteDto
 
-    // --- Documentos (Multimedia) ---
     @GET("aspirantes/me/documentos")
     suspend fun getDocumentos(): List<DocumentoItemDto>
 
@@ -55,53 +67,52 @@ interface InscripcionesApiService {
     @POST("aspirantes/me/documentos")
     suspend fun subirDocumento(
         @Part archivo: MultipartBody.Part,
-        @Part("idTipoDocumento") idTipoDocumento: RequestBody,
-        @Part("tipoCodigo") tipoCodigo: RequestBody
+        @Part("tipoCodigo") tipoCodigo: RequestBody,
+        @Part("hashSha256") hashSha256: RequestBody
     ): SubirDocumentoResponseDto
 
     @DELETE("documentos/{id}")
     suspend fun eliminarDocumento(@Path("id") id: Long): Response<Unit>
 
-    // --- Notificaciones ---
     @GET("notificaciones")
-    suspend fun getNotificaciones(): List<NotificacionItemDto>
+    suspend fun getNotificaciones(
+        @Query("leida") leida: Boolean? = null,
+        @Query("afterId") afterId: Long? = null
+    ): List<NotificacionItemDto>
 
     @PATCH("notificaciones/{id}/leida")
-    suspend fun marcarNotificacionLeida(
-        @Path("id") id: Long,
-        @Body request: MarcarLeidaRequestDto = MarcarLeidaRequestDto(true)
-    ): Response<Unit>
+    suspend fun marcarNotificacionLeida(@Path("id") id: Long): Response<Unit>
+
+    @PATCH("notificaciones/leer-todas")
+    suspend fun marcarTodasNotificacionesLeidas(): Response<Unit>
 
     @DELETE("notificaciones/{id}")
     suspend fun eliminarNotificacion(@Path("id") id: Long): Response<Unit>
 
-    // --- Fechas Importantes ---
     @GET("fechas-importantes")
     suspend fun getFechasImportantes(): List<FechaImportanteDto>
 
-    // --- Comprobante de Pago ---
-    @GET("aspirantes/me/pago")
-    suspend fun getPago(): PagoResponseDto?
+    @POST("admin/fechas-importantes")
+    suspend fun crearFechaImportante(@Body request: CrearFechaImportanteDto): Response<Unit>
 
-    @Multipart
-    @POST("aspirantes/me/pago")
-    suspend fun subirPago(
-        @Part archivo: MultipartBody.Part,
-        @Part("folioPago") folioPago: RequestBody,
-        @Part("monto") monto: RequestBody,
-        @Part("fechaPago") fechaPago: RequestBody
-    ): PagoResponseDto
-
-    // --- Panel Administrativo ---
     @GET("admin/aspirantes")
-    suspend fun getAdminAspirantes(): List<AspiranteDto>
+    suspend fun getAdminAspirantes(
+        @Query("estado") estado: String? = null,
+        @Query("q") q: String? = null
+    ): List<AspiranteDto>
 
     @GET("admin/aspirantes/{id}")
     suspend fun getAdminAspiranteDetalle(@Path("id") id: Long): AspiranteDto
+
+    @GET("admin/aspirantes/{id}/documentos")
+    suspend fun getDocumentosAspirante(@Path("id") id: Long): List<DocumentoItemDto>
 
     @POST("admin/documentos/{id}/revision")
     suspend fun revisarDocumento(
         @Path("id") id: Long,
         @Body revision: RevisionDto
-    ): DocumentoItemDto
+    ): RevisionResponseDto
+
+    @POST("admin/aspirantes/{id}/aprobar")
+    suspend fun aprobarAspirante(@Path("id") id: Long): AspiranteDto
 }

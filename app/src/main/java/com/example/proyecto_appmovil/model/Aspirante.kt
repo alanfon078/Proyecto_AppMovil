@@ -1,17 +1,19 @@
 package com.example.proyecto_appmovil.model
 
 data class Aspirante(
-    val id: String = "1",
-    val nombreCompleto: String = "Dafne Guadalupe Orozco Aguirre",
-    val curp: String = "OOAD030515HGTRRN01",
-    val email: String = "aspirante@itsur.edu.mx",
-    val telefono: String = "4451234567",
-    val carrera: String = "Ing. Sistemas Computacionales",
-    val folioAspirante: String = "ITSUR-2026-0042",
-    val promedioBachillerato: Double = 9.2,
-    val direccion: String = "Calle Hidalgo #123, Uriangato, Gto.",
-    val estadoInscripcion: EstadoInscripcion = EstadoInscripcion.EN_REVISION,
-    val rol: String = "aspirante" // "aspirante" o "escolar"
+    val id: String,
+    val nombreCompleto: String,
+    val email: String,
+    val curp: String = "",
+    val telefono: String = "",
+    val carrera: String = "",
+    val folioAspirante: String = "",
+    val promedioBachillerato: Double? = null,
+    val direccion: String = "",
+    val estadoResidencia: String = "",
+    val municipioResidencia: String = "",
+    val estadoInscripcion: EstadoInscripcion = EstadoInscripcion.PENDIENTE,
+    val rol: String = "aspirante"
 )
 
 enum class EstadoInscripcion(val descripcion: String) {

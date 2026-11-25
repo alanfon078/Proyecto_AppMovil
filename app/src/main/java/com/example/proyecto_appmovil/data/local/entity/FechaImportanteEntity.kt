@@ -5,8 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "fechas_importantes")
 data class FechaImportanteEntity(
-    @PrimaryKey
-    val idFecha: Int,
+    @PrimaryKey val idFecha: Long,
     val titulo: String,
     val descripcion: String,
     val tipo: String,

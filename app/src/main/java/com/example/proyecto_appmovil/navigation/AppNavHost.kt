@@ -1,12 +1,20 @@
 package com.example.proyecto_appmovil.navigation
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.proyecto_appmovil.InscripcionesApp
 import com.example.proyecto_appmovil.ui.screens.admin.AdminAspiranteDetailScreen
 import com.example.proyecto_appmovil.ui.screens.admin.AdminFechasScreen
 import com.example.proyecto_appmovil.ui.screens.admin.AdminHomeScreen
@@ -15,17 +23,38 @@ import com.example.proyecto_appmovil.ui.screens.auth.RegisterScreen
 import com.example.proyecto_appmovil.ui.screens.documents.DocumentsScreen
 import com.example.proyecto_appmovil.ui.screens.home.HomeScreen
 import com.example.proyecto_appmovil.ui.screens.notifications.NotificationsScreen
-import com.example.proyecto_appmovil.ui.screens.payment.PaymentScreen
 import com.example.proyecto_appmovil.ui.screens.profile.ProfileScreen
 import com.example.proyecto_appmovil.ui.screens.status.StatusScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController()
 ) {
-    val logout = {
-        navController.navigate(Screen.Login.route) {
-            popUpTo(0) { inclusive = true }
+    val app = LocalContext.current.applicationContext as InscripcionesApp
+    val scope = rememberCoroutineScope()
+    var cerrandoSesion by remember { mutableStateOf(false) }
+    val logout: () -> Unit = {
+        if (!cerrandoSesion) {
+            cerrandoSesion = true
+            scope.launch {
+                try {
+                    val resultado = app.container.inscripcionesRepository.logout()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(navController.graph.id)
+                        launchSingleTop = true
+                    }
+                    resultado.onFailure {
+                        Toast.makeText(
+                            app,
+                            "La sesión local se cerró. No se pudo confirmar el cierre en el servidor.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                } finally {
+                    cerrandoSesion = false
+                }
+            }
         }
     }
 
@@ -58,7 +87,7 @@ fun AppNavHost(
                 onNavigateBack = { navController.popBackStack() },
                 onRegisterSuccess = {
                     navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
@@ -71,7 +100,6 @@ fun AppNavHost(
                 onNavigateToStatus = { navController.navigate(Screen.Status.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
-                onNavigateToPayment = { navController.navigate(Screen.Payment.route) },
                 onLogout = logout
             )
         }
@@ -94,10 +122,6 @@ fun AppNavHost(
 
         composable(Screen.Notifications.route) {
             NotificationsScreen(onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable(Screen.Payment.route) {
-            PaymentScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // ── MÓDULO ADMIN (CONTROL ESCOLAR) ────────────────────────────────

@@ -14,14 +14,14 @@ class DataLayerArchitectureTest {
 
     @Test
     fun retrofitClient_configurationIsCorrect() {
-        assertEquals("http://10.0.2.2:3000/api/v1/", RetrofitClient.BASE_URL)
+        assertEquals(BuildConfig.BASE_URL, RetrofitClient.BASE_URL)
         val okHttpClient = RetrofitClient.createOkHttpClient { "mock_jwt_token" }
         assertNotNull(okHttpClient)
         assertEquals(30_000, okHttpClient.connectTimeoutMillis)
         assertEquals(30_000, okHttpClient.readTimeoutMillis)
         assertEquals(30_000, okHttpClient.writeTimeoutMillis)
 
-        val apiService = RetrofitClient.createApiService { "mock_jwt_token" }
+        val apiService = RetrofitClient.createApiService()
         assertNotNull(apiService)
         assertTrue(InscripcionesApiService::class.java.isInterface)
     }
@@ -29,44 +29,87 @@ class DataLayerArchitectureTest {
     @Test
     fun dtoSerialization_loginRequestAndResponse_serializesCorrectly() {
         val loginRequest = LoginRequestDto(
-            email = "aspirante@itsur.edu.mx",
+            identificador = "aspirante@itsur.edu.mx",
             contrasena = "Secret123"
         )
         val json = gson.toJson(loginRequest)
-        assertTrue(json.contains("\"email\":\"aspirante@itsur.edu.mx\""))
+        assertTrue(json.contains("\"identificador\":\"aspirante@itsur.edu.mx\""))
         assertTrue(json.contains("\"contrasena\":\"Secret123\""))
 
         val mockResponseJson = """
             {
-                "token": "fake_jwt_token",
+                "access_token": "test_access_token",
+                "refresh_token": "test_refresh_token",
                 "usuario": {
-                    "idUsuario": 100,
+                    "id_usuario": 100,
                     "nombre": "Montserrat",
                     "apellidos": "Tenorio",
-                    "nombreUsuario": "mtenorio",
+                    "nombre_usuario": "mtenorio",
                     "correo": "mtenorio@itsur.edu.mx",
-                    "rol": "ASPIRANTE",
+                    "rol": "aspirante",
                     "activo": true
                 },
                 "aspirante": {
-                    "idAspirante": 50,
-                    "idUsuario": 100,
+                    "id_aspirante": 50,
+                    "id_usuario": 100,
                     "folio": "FOL-2026-001",
+                    "nombre_completo": "Montserrat Tenorio",
+                    "correo": "mtenorio@itsur.edu.mx",
+                    "estado_residencia": "Jalisco",
+                    "municipio_residencia": "Jalostotitlán",
                     "curp": "TEMM980101HGTNRA01",
                     "telefono": "4451234567",
                     "direccion": "Av. Tecnológico #1",
-                    "promedioBachillerato": 9.2,
-                    "estadoInscripcion": "PENDIENTE"
+                    "promedio_bachillerato": 9.2,
+                    "estado_inscripcion": "en_captura"
                 }
             }
         """.trimIndent()
 
         val response = gson.fromJson(mockResponseJson, LoginResponseDto::class.java)
-        assertEquals("fake_jwt_token", response.token)
+        assertEquals("test_access_token", response.accessToken)
+        assertEquals("test_refresh_token", response.refreshToken)
         assertEquals(100L, response.usuario.idUsuario)
         assertEquals("Montserrat", response.usuario.nombre)
-        assertEquals("FOL-2026-001", response.aspirante?.folio)
+        assertEquals("Montserrat Tenorio", response.aspirante?.nombreCompleto)
+        assertEquals("Jalisco", response.aspirante?.estadoResidencia)
+        assertEquals("Jalostotitlán", response.aspirante?.municipioResidencia)
+        assertEquals("en_captura", response.aspirante?.estadoInscripcion)
         assertEquals(9.2, response.aspirante?.promedioBachillerato ?: 0.0, 0.01)
+    }
+
+    @Test
+    fun documentResponses_shareTheServerPayload() {
+        val document = """
+            {
+                "id_documento": 500,
+                "id_aspirante": 10,
+                "id_tipo_documento": 1,
+                "tipo_codigo": "CURP",
+                "nombre_original": "curp.pdf",
+                "tamano_bytes": 567,
+                "tipo_mime": "application/pdf",
+                "version": 2,
+                "fecha_subida": "2026-11-24 10:00:00",
+                "estado": "pendiente",
+                "observaciones": null
+            }
+        """.trimIndent()
+        val upload = gson.fromJson(
+            """{"documento": $document, "estado_inscripcion": "en_revision"}""",
+            SubirDocumentoResponseDto::class.java
+        )
+        assertEquals("curp.pdf", upload.documento.nombreOriginal)
+        assertEquals(567L, upload.documento.tamanoBytes)
+        assertEquals("en_revision", upload.estadoInscripcion)
+
+        val dictamen = gson.fromJson(
+            """{"id_revision": 5, "resultado": "aprobado", "documento": $document, "estado_inscripcion": "en_revision"}""",
+            RevisionResponseDto::class.java
+        )
+        assertEquals(500L, dictamen.documento.id)
+        assertEquals("aprobado", dictamen.resultado)
+        assertEquals("en_revision", dictamen.estadoInscripcion)
     }
 
     @Test
@@ -89,11 +132,15 @@ class DataLayerArchitectureTest {
             curp = "CURP12345678901234",
             telefono = "4459998877",
             direccion = "Calle Hidalgo 123",
+            carreraNombre = "Ingeniería en Gestión Empresarial",
+            estadoResidencia = "Querétaro",
+            municipioResidencia = "Amealco de Bonfil",
             promedioBachillerato = 8.9,
             estadoInscripcion = "EN_REVISION"
         )
         assertEquals(10L, aspirante.idAspirante)
         assertEquals(1L, aspirante.idUsuario)
+        assertEquals("Amealco de Bonfil", aspirante.municipioResidencia)
 
         val documento = DocumentoEntity(
             idLocal = 1L,
@@ -101,27 +148,13 @@ class DataLayerArchitectureTest {
             idAspirante = 10L,
             idTipoDocumento = 1,
             tipoCodigo = "ACTA_NACIMIENTO",
-            rutaLocal = "/storage/emulated/0/Download/acta.pdf",
             nombreOriginal = "acta_nacimiento.pdf",
             tamanoBytes = 1024L * 500,
             mimeType = "application/pdf",
-            estado = "SUBIDO",
-            syncPendiente = false
+            estado = "pendiente"
         )
         assertEquals("ACTA_NACIMIENTO", documento.tipoCodigo)
-        assertFalse(documento.syncPendiente)
-
-        val pago = ComprobantePagoEntity(
-            idPago = 1L,
-            idRemoto = 200L,
-            idAspirante = 10L,
-            folioPago = "FICH-998877",
-            monto = 1500.0,
-            fechaPago = "2026-08-15",
-            rutaComprobanteLocal = "/images/pago.jpg",
-            estado = "SUBIDO"
-        )
-        assertEquals(1500.0, pago.monto, 0.01)
+        assertEquals("acta_nacimiento.pdf", documento.nombreOriginal)
 
         val notificacion = NotificacionEntity(
             idNotificacion = 1L,

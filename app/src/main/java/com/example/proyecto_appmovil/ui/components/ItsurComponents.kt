@@ -83,9 +83,28 @@ fun ItsurTopBar(
     )
 }
 
+@Composable
+fun itsurTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color.Black,
+    unfocusedTextColor = Color.Black,
+    disabledTextColor = Color.Black,
+    errorTextColor = Color.Black,
+    focusedLabelColor = Color.Black,
+    unfocusedLabelColor = Color.Black,
+    disabledLabelColor = Color.Black,
+    errorLabelColor = Color.Black,
+    errorSupportingTextColor = Color.Black,
+    focusedBorderColor = ItsurCiruela,
+    cursorColor = ItsurCiruela,
+    focusedContainerColor = Color.White,
+    unfocusedContainerColor = Color.White,
+    disabledContainerColor = Color.White,
+    errorContainerColor = Color.White
+)
+
 /**
  * Campo de texto estilizado ITSUR con leading icon, visualización de password,
- * validación con mensaje de error en rojo y soporte de teclado IME.
+ * validación con mensaje de error y soporte de teclado IME.
  */
 @Composable
 fun ItsurTextField(
@@ -139,13 +158,7 @@ fun ItsurTextField(
             singleLine = singleLine,
             enabled = enabled,
             shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = ItsurCiruela,
-                focusedLabelColor = ItsurCiruela,
-                cursorColor = ItsurCiruela,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            ),
+            colors = itsurTextFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .bringIntoViewRequester(bringIntoViewRequester)
@@ -161,7 +174,7 @@ fun ItsurTextField(
         if (isError) {
             Text(
                 text = errorMessage ?: "",
-                color = MaterialTheme.colorScheme.error,
+                color = Color.Black,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = 12.dp, top = 4.dp)
             )
@@ -187,7 +200,7 @@ fun PrimaryButton(
             containerColor = ItsurCiruela,
             contentColor = Color.White,
             disabledContainerColor = ItsurCiruela.copy(alpha = 0.5f),
-            disabledContentColor = Color.White.copy(alpha = 0.7f)
+            disabledContentColor = Color.Black
         ),
         shape = RoundedCornerShape(12.dp),
         modifier = modifier
@@ -299,12 +312,12 @@ fun StatusChip(
     status: String,
     modifier: Modifier = Modifier
 ) {
-    val (bgColor, textColor, label) = when (status.uppercase()) {
-        "ACEPTADO", "APROBADO", "VALIDADO" -> Triple(StatusAprobadoBg, StatusAprobado, "Aceptado")
-        "EN_REVISION", "SUBIDO" -> Triple(StatusPendienteBg, StatusPendiente, "En Revisión")
-        "CON_OBSERVACIONES", "OBSERVADO" -> Triple(StatusObservacionesBg, StatusObservaciones, "Con Observaciones")
-        "RECHAZADO" -> Triple(StatusRechazadoBg, StatusRechazado, "Rechazado")
-        else -> Triple(Color(0xFFE0E0E0), Color(0xFF616161), "En Captura / Pendiente")
+    val (bgColor, label) = when (status.uppercase()) {
+        "ACEPTADO", "APROBADO", "VALIDADO" -> Pair(StatusAprobadoBg, "Aceptado")
+        "EN_REVISION", "SUBIDO" -> Pair(StatusPendienteBg, "En Revisión")
+        "CON_OBSERVACIONES", "OBSERVADO" -> Pair(StatusObservacionesBg, "Con Observaciones")
+        "RECHAZADO" -> Pair(StatusRechazadoBg, "Rechazado")
+        else -> Pair(Color(0xFFE0E0E0), "En Captura / Pendiente")
     }
 
     Surface(
@@ -314,7 +327,7 @@ fun StatusChip(
     ) {
         Text(
             text = label,
-            color = textColor,
+            color = Color.Black,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

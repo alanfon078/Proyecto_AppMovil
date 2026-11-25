@@ -8,9 +8,6 @@ sealed class Screen(val route: String) {
     object Status : Screen("status")
     object Profile : Screen("profile")
     object Notifications : Screen("notifications")
-    object CredentialPhoto : Screen("credential_photo")
-    object Payment : Screen("payment")
-    object Reglamento : Screen("reglamento")
 
     // Módulos para rol Escolar / Administrador
     object AdminHome : Screen("admin_home")

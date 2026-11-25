@@ -15,33 +15,22 @@ interface AppContainer {
     val inscripcionesRepository: InscripcionesRepository
 }
 
-class DefaultAppContainer(private val context: Context) : AppContainer {
+class DefaultAppContainer(context: Context) : AppContainer {
+    private val applicationContext = context.applicationContext
 
     override val database: AppDatabase by lazy {
-        AppDatabase.getDatabase(context)
+        AppDatabase.getDatabase(applicationContext)
     }
 
     override val sessionManager: SessionManager by lazy {
-        SessionManager(context)
+        SessionManager(applicationContext)
     }
 
     override val apiService: InscripcionesApiService by lazy {
-        RetrofitClient.createApiService(
-            tokenProvider = { sessionManager.getAuthToken() }
-        )
+        RetrofitClient.createApiService(sessionManager)
     }
 
     override val inscripcionesRepository: InscripcionesRepository by lazy {
-        InscripcionesRepositoryImpl(
-            aspiranteDao = database.aspiranteDao(),
-            documentoDao = database.documentoDao(),
-            comprobantePagoDao = database.comprobantePagoDao(),
-            notificacionDao = database.notificacionDao(),
-            fechaImportanteDao = database.fechaImportanteDao(),
-            catalogosDao = database.catalogosDao(),
-            usuarioDao = database.usuarioDao(),
-            apiService = apiService,
-            sessionManager = sessionManager
-        )
+        InscripcionesRepositoryImpl(applicationContext, database, apiService, sessionManager)
     }
 }

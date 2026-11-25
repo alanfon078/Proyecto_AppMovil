@@ -22,16 +22,16 @@ import androidx.room.PrimaryKey
     ]
 )
 data class AspiranteEntity(
-    @PrimaryKey
-    val idAspirante: Long,
+    @PrimaryKey val idAspirante: Long,
     val idUsuario: Long,
     val folio: String,
     val curp: String,
     val telefono: String,
     val direccion: String,
-    val idEstado: Int? = null,
-    val idMunicipio: Int? = null,
     val idCarrera: Int? = null,
-    val promedioBachillerato: Double = 0.0,
-    val estadoInscripcion: String = "PENDIENTE"
+    val carreraNombre: String = "",
+    val estadoResidencia: String = "",
+    val municipioResidencia: String = "",
+    val promedioBachillerato: Double? = null,
+    val estadoInscripcion: String
 )
