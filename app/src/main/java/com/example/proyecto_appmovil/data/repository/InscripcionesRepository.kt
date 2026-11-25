@@ -9,6 +9,7 @@ import com.example.proyecto_appmovil.model.Notificacion
 import com.example.proyecto_appmovil.model.ResumenAspirante
 import com.example.proyecto_appmovil.model.TipoDocumento
 import com.example.proyecto_appmovil.model.PreguntaDuda
+import com.example.proyecto_appmovil.util.PdfMetadata
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 
@@ -16,6 +17,7 @@ interface InscripcionesRepository {
     suspend fun login(usuarioOCorreo: String, contrasena: String): Result<Aspirante>
     suspend fun registrarAspirante(
         nombreCompleto: String,
+        nombreUsuario: String,
         curp: String,
         email: String,
         telefono: String,
@@ -25,6 +27,7 @@ interface InscripcionesRepository {
         municipioResidencia: String,
         contrasena: String
     ): Result<Boolean>
+    suspend fun verificarDisponibilidadUsuario(nombreUsuario: String): Result<Boolean>
     suspend fun logout(): Result<Unit>
     suspend fun cambiarPassword(actual: String, nueva: String): Result<Unit>
 
@@ -33,6 +36,7 @@ interface InscripcionesRepository {
     suspend fun actualizarAspirante(aspirante: Aspirante): Result<Boolean>
 
     suspend fun getDocumentos(): List<Documento>
+    suspend fun obtenerMetadataPdf(uri: Uri): Result<PdfMetadata>
     suspend fun subirDocumento(tipo: TipoDocumento, uri: Uri): Result<Boolean>
     suspend fun eliminarDocumento(id: String): Result<Unit>
 

@@ -49,7 +49,9 @@ fun DocumentsScreen(
         onSubirClick = { tipo ->
             viewModel.prepararSubida(tipo)
             filePickerLauncher.launch(arrayOf("application/pdf"))
-        }
+        },
+        onConfirmarEnvio = viewModel::confirmarEnvioDocumento,
+        onCancelarEnvio = viewModel::cancelarEnvioDocumento
     )
 }
 
@@ -57,8 +59,91 @@ fun DocumentsScreen(
 fun DocumentsContent(
     uiState: DocumentsUiState,
     onNavigateBack: () -> Unit,
-    onSubirClick: (TipoDocumento) -> Unit
+    onSubirClick: (TipoDocumento) -> Unit,
+    onConfirmarEnvio: () -> Unit,
+    onCancelarEnvio: () -> Unit
 ) {
+    uiState.confirmacionEnvio?.let { confirmacion ->
+        val context = LocalContext.current
+        val pesoTexto = if (confirmacion.tamanoBytes > 0L) {
+            Formatter.formatFileSize(context, confirmacion.tamanoBytes)
+        } else {
+            null
+        }
+        AlertDialog(
+            onDismissRequest = onCancelarEnvio,
+            containerColor = Color.White,
+            titleContentColor = ItsurVinoOscuro,
+            textContentColor = Color.Black,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.PictureAsPdf,
+                    contentDescription = null,
+                    tint = ItsurCiruela
+                )
+            },
+            title = {
+                Text(
+                    text = "Confirmar envío de documento",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = if (confirmacion.esReemplazo) {
+                            "Este archivo reemplazará la versión anterior de ${confirmacion.tipo.titulo} y será enviado a revisión por Control Escolar."
+                        } else {
+                            "¿Deseas enviar este documento PDF para ${confirmacion.tipo.titulo} a revisión por Control Escolar?"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Black
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ItsurRosaSuave, RoundedCornerShape(8.dp))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = confirmacion.nombreArchivo,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = ItsurVinoOscuro
+                        )
+                        if (pesoTexto != null) {
+                            Text(
+                                text = "Tamaño: $pesoTexto",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ItsurOnSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onConfirmarEnvio,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ItsurCiruela,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Confirmar y enviar", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onCancelarEnvio,
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             ItsurTopBar(
@@ -287,7 +372,9 @@ fun DocumentsScreenPreview() {
         DocumentsContent(
             uiState = DocumentsUiState(),
             onNavigateBack = {},
-            onSubirClick = {}
+            onSubirClick = {},
+            onConfirmarEnvio = {},
+            onCancelarEnvio = {}
         )
     }
 }

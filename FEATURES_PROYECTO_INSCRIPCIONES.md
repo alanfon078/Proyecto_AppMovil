@@ -256,11 +256,11 @@ flowchart TD
 **B) Backend app móvil**
 - [ ] **[ 20%]** **F00-B1**: Gradle: KSP, Room (`runtime`, `ktx`, `compiler`), Retrofit, `converter-gson` (o kotlinx-serialization), `logging-interceptor`, `coroutines`, `datastore-preferences`, `security-crypto`, `coil` (previsualización de imagen), `work-runtime` (cola de subida).
 - [ ] **[ 15%]** **F00-B2**: `AppDatabase` (`@Database`, versión 1, `TypeConverters`), `Room.databaseBuilder` en `DefaultAppContainer`.
-- [ ] **[  0%]** **F00-B3**: `RetrofitClient` con `OkHttpClient` (timeouts, logging solo en debug, `AuthInterceptor` que añade `Authorization: Bearer`, `Authenticator` que usa refresh token), `BASE_URL` por `buildConfigField` (emulador `http://10.0.2.2:3000/api/v1/`).
+- [ ] **[  0%]** **F00-B3**: `RetrofitClient` con `OkHttpClient` (timeouts, logging solo en debug, `AuthInterceptor` que añade `Authorization: Bearer`, `Authenticator` que usa refresh token), `BASE_URL` por `buildConfigField` (emulador `http://127.0.0.1:3000/api/v1/`).
 - [ ] **[ 15%]** **F00-B4**: `AppViewModelProvider.Factory` (`viewModelFactory { initializer { … } }`) y `InscripcionesRepositoryImpl(daos, apiService, sessionStore)`.
 - [ ] **[  0%]** **F00-B5**: `SessionStore` (DataStore + EncryptedSharedPreferences): tokens, `idUsuario`, `rol`.
 - [ ] **[  0%]** **F00-B6**: Wrapper `NetworkResult<T>` / mapeo de errores HTTP → mensajes de usuario; `ConnectivityObserver`.
-- [ ] **[  0%]** **F00-B7**: Manifest: `INTERNET`, `ACCESS_NETWORK_STATE`, `networkSecurityConfig` solo para dev (cleartext a `10.0.2.2`), `POST_NOTIFICATIONS`.
+- [ ] **[  0%]** **F00-B7**: Manifest: `INTERNET`, `ACCESS_NETWORK_STATE`, `networkSecurityConfig` solo para dev (cleartext a `127.0.0.1`), `POST_NOTIFICATIONS`.
 
 **C) Backend servidor Node.js**
 - [ ] **[  0%]** **F00-C1**: Proyecto `server/` con la estructura de la sección 1, `.env.example` (`PORT`, `DB_*`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `UPLOAD_DIR`, `MAX_PDF_MB`), `npm scripts` (`dev`, `start`, `test`, `migrate`).
@@ -1023,6 +1023,6 @@ Cobertura CRUD para el Entregable 2 (≥ 50% requerido): **Agregar** (register, 
 | 4 | Ficha de pago | La escuela la asigna (referencia + monto); el aspirante reporta el pago | Control Escolar |
 | 5 | Texto del reglamento | Se sirve como PDF/texto versionado desde el servidor | Control Escolar |
 | 6 | Push (FCM) | Fase 2; en Entregable 2 se usa sincronización periódica + notificación local | Equipo |
-| 7 | Hosting del servidor | Local (`10.0.2.2:3000` en emulador / IP LAN en dispositivo físico) durante el curso | Equipo |
+| 7 | Hosting del servidor | Local (`127.0.0.1:3000` en emulador / IP LAN en dispositivo físico) durante el curso | Equipo |
 | 8 | DI | Contenedor manual (ya existente) en lugar de Hilt | Equipo |
 | 9 | Paleta definitiva | Valores aproximados de capturas (sección 2.1) | Autor de la UI |

@@ -33,6 +33,11 @@ function errorHandler(error, _req, res, next) {
     });
   }
   if (error.code === 'ER_DUP_ENTRY') {
+    if (String(error.message || '').includes('nombre_usuario')) {
+      return res.status(409).json({
+        error: { code: 'DUPLICATE_USERNAME', message: 'El nombre de usuario ya está en uso' }
+      });
+    }
     return res.status(409).json({
       error: { code: 'DUPLICATE_ASPIRANTE', message: 'La CURP, el correo o el usuario ya están registrados' }
     });

@@ -25,6 +25,7 @@ data class RefreshTokenResponseDto(
 
 data class RegisterRequestDto(
     @SerializedName("nombre_completo") val nombreCompleto: String,
+    @SerializedName("nombre_usuario") val nombreUsuario: String,
     @SerializedName("curp") val curp: String,
     @SerializedName("correo") val correo: String,
     @SerializedName("telefono") val telefono: String,
@@ -33,6 +34,10 @@ data class RegisterRequestDto(
     @SerializedName("direccion") val direccion: String,
     @SerializedName("estado_residencia") val estadoResidencia: String,
     @SerializedName("municipio_residencia") val municipioResidencia: String
+)
+
+data class DisponibilidadUsuarioDto(
+    @SerializedName("disponible") val disponible: Boolean
 )
 
 data class CambiarPasswordRequestDto(

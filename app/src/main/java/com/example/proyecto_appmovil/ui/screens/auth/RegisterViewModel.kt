@@ -4,15 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyecto_appmovil.data.local.entity.CarreraEntity
 import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class RegisterUiState(
     val nombres: String = "",
     val apellidos: String = "",
+    val nombreUsuario: String = "",
     val curp: String = "",
     val email: String = "",
     val telefono: String = "",
@@ -26,6 +30,9 @@ data class RegisterUiState(
     val confirmarContrasena: String = "",
     val errorNombres: String? = null,
     val errorApellidos: String? = null,
+    val errorNombreUsuario: String? = null,
+    val verificandoUsuario: Boolean = false,
+    val usuarioDisponible: Boolean? = null,
     val errorCurp: String? = null,
     val errorEmail: String? = null,
     val errorTelefono: String? = null,
@@ -45,6 +52,8 @@ class RegisterViewModel(
 
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
+    private var checkUsernameJob: Job? = null
+    private val usernameRegex = Regex("^[a-z0-9_.-]{3,50}$")
 
     init {
         viewModelScope.launch {
@@ -71,6 +80,39 @@ class RegisterViewModel(
 
     fun onNombresChange(v: String) = _uiState.update { it.copy(nombres = v, errorNombres = null) }
     fun onApellidosChange(v: String) = _uiState.update { it.copy(apellidos = v, errorApellidos = null) }
+    fun onNombreUsuarioChange(v: String) {
+        val sanitized = v.filterNot { it.isWhitespace() }.take(50)
+        val normalized = sanitized.lowercase(Locale.ROOT)
+        checkUsernameJob?.cancel()
+        _uiState.update {
+            it.copy(
+                nombreUsuario = sanitized,
+                errorNombreUsuario = null,
+                usuarioDisponible = null,
+                verificandoUsuario = false
+            )
+        }
+        if (normalized.length >= 3 && usernameRegex.matches(normalized)) {
+            _uiState.update { it.copy(verificandoUsuario = true) }
+            checkUsernameJob = viewModelScope.launch {
+                delay(400)
+                repository.verificarDisponibilidadUsuario(normalized)
+                    .onSuccess { disponible ->
+                        _uiState.update {
+                            if (it.nombreUsuario.lowercase(Locale.ROOT) != normalized) it
+                            else it.copy(
+                                verificandoUsuario = false,
+                                usuarioDisponible = disponible,
+                                errorNombreUsuario = if (disponible) null else "Este nombre de usuario ya está en uso"
+                            )
+                        }
+                    }
+                    .onFailure {
+                        _uiState.update { it.copy(verificandoUsuario = false) }
+                    }
+            }
+        }
+    }
     fun onCurpChange(v: String) = _uiState.update { it.copy(curp = v.uppercase().take(18), errorCurp = null) }
     fun onEmailChange(v: String) = _uiState.update { it.copy(email = v, errorEmail = null) }
     fun onTelefonoChange(v: String) = _uiState.update { it.copy(telefono = v.filter { ch -> ch.isDigit() }.take(10), errorTelefono = null) }
@@ -92,6 +134,19 @@ class RegisterViewModel(
         }
         if (s.apellidos.isBlank()) {
             _uiState.update { it.copy(errorApellidos = "Ingrese sus apellidos") }
+            valid = false
+        }
+        val normalizedUsername = s.nombreUsuario.trim().lowercase(Locale.ROOT)
+        if (normalizedUsername.isBlank()) {
+            _uiState.update { it.copy(errorNombreUsuario = "Ingrese un nombre de usuario") }
+            valid = false
+        } else if (!usernameRegex.matches(normalizedUsername)) {
+            _uiState.update {
+                it.copy(errorNombreUsuario = "Debe tener 3 a 50 caracteres (letras, números, ., _, -)")
+            }
+            valid = false
+        } else if (s.usuarioDisponible == false) {
+            _uiState.update { it.copy(errorNombreUsuario = "Este nombre de usuario ya está en uso") }
             valid = false
         }
         val curpRegex = Regex("^[A-Z]{4}\\d{6}[HM][A-Z]{5}[A-Z0-9]\\d$")
@@ -136,6 +191,7 @@ class RegisterViewModel(
             val nombreCompleto = "${s.nombres.trim()} ${s.apellidos.trim()}"
             val result = repository.registrarAspirante(
                 nombreCompleto = nombreCompleto,
+                nombreUsuario = normalizedUsername,
                 curp = s.curp,
                 email = s.email.trim(),
                 telefono = s.telefono,
@@ -149,10 +205,12 @@ class RegisterViewModel(
                 _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                 onSuccess()
             }.onFailure { ex ->
+                val msg = ex.message ?: "Error al registrar aspirante"
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = ex.message ?: "Error al registrar aspirante"
+                        errorMessage = msg,
+                        errorNombreUsuario = if (msg.contains("usuario", ignoreCase = true)) msg else it.errorNombreUsuario
                     )
                 }
             }

@@ -5,6 +5,7 @@ import com.example.proyecto_appmovil.data.remote.dto.AspiranteDto
 import com.example.proyecto_appmovil.data.remote.dto.CambiarPasswordRequestDto
 import com.example.proyecto_appmovil.data.remote.dto.CarreraDto
 import com.example.proyecto_appmovil.data.remote.dto.CrearFechaImportanteDto
+import com.example.proyecto_appmovil.data.remote.dto.DisponibilidadUsuarioDto
 import com.example.proyecto_appmovil.data.remote.dto.DocumentoItemDto
 import com.example.proyecto_appmovil.data.remote.dto.FechaImportanteDto
 import com.example.proyecto_appmovil.data.remote.dto.LoginRequestDto
@@ -46,6 +47,11 @@ interface InscripcionesApiService {
 
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequestDto): LoginResponseDto
+
+    @GET("auth/disponibilidad")
+    suspend fun verificarDisponibilidadUsuario(
+        @Query("nombre_usuario") nombreUsuario: String
+    ): DisponibilidadUsuarioDto
 
     @POST("auth/refresh")
     fun refresh(@Body request: RefreshTokenRequestDto): Call<RefreshTokenResponseDto>

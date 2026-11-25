@@ -349,12 +349,36 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 ---
 
+### Feature Nueva 4 (`F10`): Nombre de Usuario Anti-Duplicados en Registro y Confirmación de Envío PDF
+
+**Objetivo:** Evitar que los nuevos aspirantes se registren con identificadores autogenerados (`aspirante-<uuid>`) permitiendo elegir su propio `nombre_usuario` con validación de formato y anti-duplicados en tiempo real y transaccional; y añadir un diálogo de confirmación previo al envío de cada documento PDF en el módulo del alumno.  
+**Requerimientos cubiertos:** `#20, #21`
+
+#### Tasks de `F10`
+
+- [x] **F10-01 — Campo de nombre de usuario con validaciones anti-duplicados en Registro (Req 20)**
+  - **Backend (`server/src/auth.js`, `app.js`, `http.js`):**
+    - Exponer `GET /api/v1/auth/disponibilidad?nombre_usuario=<valor>` (público) para consultar en MySQL (`usuarios.nombre_usuario`) si el nombre de usuario está disponible (`{ disponible: boolean }`), validando formato (`^[a-z0-9_.-]{3,50}$`).
+    - En `POST /api/v1/auth/register`, validar unicidad de `nombre_usuario` dentro de la transacción (`409 DUPLICATE_USERNAME`: `"El nombre de usuario ya está en uso"`) y reforzar el manejo de `ER_DUP_ENTRY` en `http.js`.
+  - **Android (`RegisterScreen.kt`, `RegisterViewModel.kt`, `AuthDto.kt`, `InscripcionesApiService.kt`, `InscripcionesRepositoryImpl.kt`):**
+    - Agregar campo obligatorio `"Nombre de usuario"` en `RegisterScreen.kt` (normalizado en minúsculas, sin espacios, 3–50 caracteres alfanuméricos, `.`, `_`, `-`).
+    - Implementar verificación anti-duplicados con *debounce* en `RegisterViewModel.kt` contra `GET /api/v1/auth/disponibilidad` mostrando estado de disponibilidad o error directo en el campo, además de mapear el error `409` del servidor al campo en caso de colisión simultánea.
+    - Incluir `nombre_usuario` en `RegisterRequestDto` y `registrarAspirante(...)`.
+
+- [x] **F10-02 — Confirmación de envío de documento PDF en el apartado de alumno (Req 21)**
+  - **Android (`FileHashHelper.kt`, `InscripcionesRepository.kt`, `InscripcionesRepositoryImpl.kt`, `DocumentsViewModel.kt`, `DocumentsScreen.kt`):**
+    - Inspeccionar los metadatos del PDF seleccionado (`OpenableColumns.DISPLAY_NAME`, `OpenableColumns.SIZE`, tipo MIME y tamaño `<= 5 MB`) antes de iniciar la carga.
+    - Mostrar un diálogo de confirmación (`AlertDialog`) en `DocumentsScreen.kt` con el tipo de documento, el nombre del archivo PDF y su tamaño formateado antes de ejecutar `subirDocumento(tipo, uri)`, permitiendo confirmar el envío o cancelar sin subir nada.
+
+---
+
 ## 6. Contrato Consolidado de Endpoints API (`/api/v1`)
 
 | Grupo | Método y Ruta | Roles | Acción / Estado |
 | :--- | :--- | :---: | :--- |
 | **Auth** | `POST /api/v1/auth/login` | Público | Autenticación real con `bcrypt` + JWT firmado (`access_token`, `refresh_token`). |
-| **Auth** | `POST /api/v1/auth/register` | Público | Registro transaccional en MySQL (`contrasena >= 8`, `estado_residencia`, `municipio_residencia`). |
+| **Auth** | `POST /api/v1/auth/register` | Público | Registro transaccional en MySQL (`nombre_usuario` único, `contrasena >= 8`, `estado_residencia`, `municipio_residencia`). |
+| **Auth** | `GET /api/v1/auth/disponibilidad` | Público | **Nuevo:** Consulta disponibilidad de `nombre_usuario` en MySQL (`?nombre_usuario=...`). |
 | **Auth** | `POST /api/v1/auth/refresh` | Público | Rotación real contra tabla `refresh_tokens`. |
 | **Auth** | `POST /api/v1/auth/logout` | Autenticado | Revoca refresh token en MySQL. |
 | **Auth** | `PATCH /api/v1/auth/password` | Autenticado | **Nuevo:** Cambio real de contraseña (`>= 8` caracteres) verificando contraseña actual. |
@@ -413,6 +437,8 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 | **17** | En "Preguntas y Dudas" Admin: ver quién y cuándo preguntó + filtro combinado Tipo × Estado (`Respondidas` / `Pendientes`) | — | `F09` | `F09-02`, `F09-05` | Fases 3, 6 |
 | **18** | Conectar y crear todos los procesos y endpoints necesarios para conexión con API | — | `F07` / `F08` / `F09` | `F07-05`, `F07-09`, `F08-04`, `F08-05`, `F08-07`, `F09-02`, `F09-03` | Fases 3–6 |
 | **19** | Agregar logo del ITSUR en el inicio de la aplicación | Logo oficial adjunto en `LoginScreen`, Splash Screen inicial e ícono launcher | `F07` | `F07-03` | Fase 4 |
+| **20** | Campo de nombre de usuario con validaciones anti-duplicados en Registro | Campo obligatorio en `RegisterScreen` + consulta `/auth/disponibilidad` + validación `409` en `register` | `F10` | `F10-01` | Fase 8 |
+| **21** | Confirmación de envío de documento PDF en apartado de alumno | Diálogo de confirmación con nombre y tamaño del PDF antes de subir | `F10` | `F10-02` | Fase 8 |
 
 ---
 

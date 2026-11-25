@@ -41,6 +41,7 @@ fun RegisterScreen(
         onNavigateBack = onNavigateBack,
         onNombresChange = viewModel::onNombresChange,
         onApellidosChange = viewModel::onApellidosChange,
+        onNombreUsuarioChange = viewModel::onNombreUsuarioChange,
         onCurpChange = viewModel::onCurpChange,
         onEmailChange = viewModel::onEmailChange,
         onTelefonoChange = viewModel::onTelefonoChange,
@@ -61,6 +62,7 @@ fun RegisterContent(
     onNavigateBack: () -> Unit,
     onNombresChange: (String) -> Unit,
     onApellidosChange: (String) -> Unit,
+    onNombreUsuarioChange: (String) -> Unit,
     onCurpChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onTelefonoChange: (String) -> Unit,
@@ -138,6 +140,41 @@ fun RegisterContent(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ItsurTextField(
+                value = uiState.nombreUsuario,
+                onValueChange = onNombreUsuarioChange,
+                label = "Nombre de usuario",
+                leadingIcon = Icons.Default.AlternateEmail,
+                errorMessage = uiState.errorNombreUsuario,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Ascii,
+                    imeAction = ImeAction.Next
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (uiState.verificandoUsuario) {
+                Text(
+                    text = "Verificando disponibilidad...",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ItsurOnSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, top = 4.dp)
+                )
+            } else if (uiState.usuarioDisponible == true && uiState.errorNombreUsuario == null) {
+                Text(
+                    text = "Nombre de usuario disponible",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = StatusAprobado,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, top = 4.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -319,6 +356,7 @@ fun RegisterScreenPreview() {
             onNavigateBack = {},
             onNombresChange = {},
             onApellidosChange = {},
+            onNombreUsuarioChange = {},
             onCurpChange = {},
             onEmailChange = {},
             onTelefonoChange = {},

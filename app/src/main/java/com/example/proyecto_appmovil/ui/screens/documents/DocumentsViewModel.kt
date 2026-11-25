@@ -13,10 +13,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class ConfirmacionEnvioPdf(
+    val tipo: TipoDocumento,
+    val uri: Uri,
+    val nombreArchivo: String,
+    val tamanoBytes: Long,
+    val esReemplazo: Boolean
+)
+
 data class DocumentsUiState(
     val documentos: List<Documento> = emptyList(),
     val isLoading: Boolean = false,
     val documentoSeleccionadoParaSubir: TipoDocumento? = null,
+    val confirmacionEnvio: ConfirmacionEnvioPdf? = null,
     val mensajeExito: String? = null,
     val mensajeError: String? = null
 )
@@ -50,11 +59,52 @@ class DocumentsViewModel(
         _uiState.update { it.copy(documentoSeleccionadoParaSubir = null) }
         if (uri == null || estado.isLoading) return
 
-        _uiState.update { it.copy(isLoading = true, mensajeError = null, mensajeExito = null) }
         viewModelScope.launch {
-            repository.subirDocumento(tipo, uri)
+            repository.obtenerMetadataPdf(uri)
+                .onSuccess { meta ->
+                    val yaSubido = estado.documentos.any { it.tipo == tipo && it.nombreArchivo != null }
+                    _uiState.update {
+                        it.copy(
+                            confirmacionEnvio = ConfirmacionEnvioPdf(
+                                tipo = tipo,
+                                uri = uri,
+                                nombreArchivo = meta.originalName,
+                                tamanoBytes = meta.sizeBytes,
+                                esReemplazo = yaSubido
+                            ),
+                            mensajeError = null
+                        )
+                    }
+                }
+                .onFailure { ex ->
+                    _uiState.update {
+                        it.copy(mensajeError = ex.message ?: "El archivo seleccionado no es un PDF válido")
+                    }
+                }
+        }
+    }
+
+    fun cancelarEnvioDocumento() {
+        _uiState.update { it.copy(confirmacionEnvio = null) }
+    }
+
+    fun confirmarEnvioDocumento() {
+        val estado = _uiState.value
+        val pending = estado.confirmacionEnvio ?: return
+        if (estado.isLoading) return
+
+        _uiState.update {
+            it.copy(
+                confirmacionEnvio = null,
+                isLoading = true,
+                mensajeError = null,
+                mensajeExito = null
+            )
+        }
+        viewModelScope.launch {
+            repository.subirDocumento(pending.tipo, pending.uri)
                 .onSuccess {
-                    _uiState.update { it.copy(mensajeExito = "${tipo.titulo} enviado a revisión") }
+                    _uiState.update { it.copy(mensajeExito = "${pending.tipo.titulo} enviado a revisión") }
                     actualizarDocumentos()
                 }.onFailure { ex ->
                     _uiState.update {

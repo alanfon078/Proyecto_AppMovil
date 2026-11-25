@@ -34,7 +34,7 @@ flowchart TD
     end
 
     subgraph REMOTE_DS["RemoteDataSource (Cliente HTTP / Web API)"]
-        RETROFIT["«Retrofit 2 + Gson»\nInscripcionesApiService\nBASE_URL: http://10.0.2.2:3000/api/v1/"]
+        RETROFIT["«Retrofit 2 + Gson»\nInscripcionesApiService\nBASE_URL: http://127.0.0.1:3000/api/v1/"]
         OKHTTP["«OkHttpClient»\n• AuthInterceptor (Bearer Token)\n• HttpLoggingInterceptor\n• FallbackMockServerInterceptor"]
     end
 

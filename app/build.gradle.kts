@@ -8,7 +8,7 @@ plugins {
 
 val apiBaseUrl = providers.gradleProperty("ITSUR_BASE_URL")
     .orElse(providers.environmentVariable("ITSUR_BASE_URL"))
-    .orElse("http://10.0.2.2:3000/api/v1/")
+    .orElse("http://127.0.0.1:3000/api/v1/")
     .map {
         val url = URI(it.trim().trimEnd('/') + "/")
         require(url.scheme in listOf("http", "https") && url.host != null &&

@@ -31,6 +31,7 @@ import com.example.proyecto_appmovil.model.ResumenAspirante
 import com.example.proyecto_appmovil.model.TipoDocumento
 import com.example.proyecto_appmovil.model.PreguntaDuda
 import com.example.proyecto_appmovil.util.FileHashHelper
+import com.example.proyecto_appmovil.util.PdfMetadata
 import com.example.proyecto_appmovil.work.NotificacionesWorkManager
 import com.google.gson.JsonParseException
 import com.google.gson.JsonParser
@@ -100,6 +101,7 @@ class InscripcionesRepositoryImpl(
 
     override suspend fun registrarAspirante(
         nombreCompleto: String,
+        nombreUsuario: String,
         curp: String,
         email: String,
         telefono: String,
@@ -111,11 +113,16 @@ class InscripcionesRepositoryImpl(
     ): Result<Boolean> = request {
         requirePasswordLength(contrasena)
         val response = api.register(RegisterRequestDto(
-            nombreCompleto.trim(), curp.trim().uppercase(Locale.ROOT), email.trim(), telefono.trim(),
+            nombreCompleto.trim(), nombreUsuario.trim().lowercase(Locale.ROOT),
+            curp.trim().uppercase(Locale.ROOT), email.trim(), telefono.trim(),
             idCarrera, contrasena, direccion.trim(), estadoResidencia.trim(), municipioResidencia.trim()
         ))
         installSession(response)
         true
+    }
+
+    override suspend fun verificarDisponibilidadUsuario(nombreUsuario: String): Result<Boolean> = request {
+        api.verificarDisponibilidadUsuario(nombreUsuario.trim().lowercase(Locale.ROOT)).disponible
     }
 
     override suspend fun cambiarPassword(actual: String, nueva: String): Result<Unit> = request {
@@ -180,6 +187,10 @@ class InscripcionesRepositoryImpl(
         }
         response.completeSlots()
     }.getOrThrow()
+
+    override suspend fun obtenerMetadataPdf(uri: Uri): Result<PdfMetadata> = request {
+        FileHashHelper.inspectPdf(context, uri)
+    }
 
     override suspend fun subirDocumento(tipo: TipoDocumento, uri: Uri): Result<Boolean> = request {
         val pdf = FileHashHelper.copyToInternalAndComputeSha256(context, uri)

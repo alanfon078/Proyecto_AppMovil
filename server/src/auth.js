@@ -147,9 +147,14 @@ const login = route(async (req, res) => {
   res.json(session);
 });
 
+const usernameSchema = z.string().trim().regex(
+  /^[a-z0-9_.-]{3,50}$/i,
+  'Nombre de usuario inválido (3 a 50 caracteres: letras, números, ., _, -)'
+);
+
 const registerInput = z.object({
   nombre_completo: z.string().trim().min(1).max(181),
-  nombre_usuario: z.string().trim().regex(/^[a-z0-9_.-]{1,50}$/i, 'Nombre de usuario inválido').optional(),
+  nombre_usuario: usernameSchema.optional(),
   correo: z.string().trim().toLowerCase().email('El correo electrónico no es válido').max(150),
   contrasena: newPassword,
   curp: z.string().trim().toUpperCase().regex(/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/, 'CURP inválida'),
@@ -158,6 +163,18 @@ const registerInput = z.object({
   estado_residencia: z.string().trim().min(1, 'Indica el estado de residencia').max(100),
   municipio_residencia: z.string().trim().min(1, 'Indica el municipio de residencia').max(120),
   id_carrera: z.number().int().positive().max(4294967295)
+});
+
+const checkUsername = route(async (req, res) => {
+  const parsed = usernameSchema.safeParse(req.query.nombre_usuario);
+  if (!parsed.success) {
+    throw new HttpError(422, 'INVALID_USERNAME', parsed.error.issues[0].message);
+  }
+  const [rows] = await pool.execute(
+    'SELECT 1 FROM usuarios WHERE nombre_usuario = ? LIMIT 1',
+    [parsed.data.toLowerCase()]
+  );
+  res.json({ disponible: rows.length === 0 });
 });
 
 const register = route(async (req, res) => {
@@ -170,6 +187,15 @@ const register = route(async (req, res) => {
   const nombreUsuario = data.nombre_usuario?.toLowerCase() || 'aspirante-' + randomUUID();
   const passwordHash = await bcrypt.hash(data.contrasena, 12);
   const session = await inTransaction(async connection => {
+    if (data.nombre_usuario) {
+      const [existingUsers] = await connection.execute(
+        'SELECT id_usuario FROM usuarios WHERE nombre_usuario = ? LIMIT 1',
+        [nombreUsuario]
+      );
+      if (existingUsers.length > 0) {
+        throw new HttpError(409, 'DUPLICATE_USERNAME', 'El nombre de usuario ya está en uso');
+      }
+    }
     const [carreras] = await connection.execute(
       'SELECT id_carrera FROM carreras WHERE id_carrera = ? AND activa = TRUE FOR SHARE',
       [data.id_carrera]
@@ -253,4 +279,4 @@ const password = route(async (req, res) => {
   res.sendStatus(204);
 });
 
-module.exports = { checkAuthConfig, requireAuth, requireRole, login, register, refresh, logout, password };
+module.exports = { checkAuthConfig, requireAuth, requireRole, login, register, checkUsername, refresh, logout, password };
