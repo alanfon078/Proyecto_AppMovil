@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.proyecto_appmovil.data.local.entity.NotificacionEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NotificacionDao {
@@ -12,7 +13,7 @@ interface NotificacionDao {
     suspend fun insertAll(notificaciones: List<NotificacionEntity>)
 
     @Query("SELECT * FROM notificaciones ORDER BY idRemoto ASC")
-    suspend fun getAll(): List<NotificacionEntity>
+    fun observarTodas(): Flow<List<NotificacionEntity>>
 
     @Query("UPDATE notificaciones SET leida = 1 WHERE idRemoto = :id")
     suspend fun marcarLeida(id: Long)

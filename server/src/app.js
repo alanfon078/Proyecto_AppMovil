@@ -233,7 +233,7 @@ router.post('/admin/notificaciones/aviso-general', route(async (req, res) => {
   const notificados = await inTransaction(async connection => {
     const [usuarios] = await connection.execute(
       'SELECT u.id_usuario FROM usuarios u JOIN aspirantes a ON a.id_usuario = u.id_usuario' +
-      ' WHERE u.rol = \'aspirante\' AND u.activo = TRUE'
+      ' WHERE u.rol = \'aspirante\' AND u.activo = TRUE ORDER BY u.id_usuario'
     );
     for (const usuario of usuarios) {
       await connection.execute(

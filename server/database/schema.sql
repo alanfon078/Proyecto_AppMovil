@@ -208,6 +208,15 @@ ALTER TABLE notificaciones
   ADD CONSTRAINT fk_not_pregunta FOREIGN KEY (id_pregunta) REFERENCES preguntas_dudas(id_pregunta)
     ON DELETE SET NULL ON UPDATE CASCADE;
 
+-- Serializar la inserción antes de asignar el ID que consume el cliente como cursor.
+DROP TRIGGER IF EXISTS ordenar_notificacion_destinatario;
+CREATE TRIGGER ordenar_notificacion_destinatario
+  BEFORE INSERT ON notificaciones FOR EACH ROW
+  SET NEW.id_usuario = COALESCE(
+    (SELECT u.id_usuario FROM usuarios u WHERE u.id_usuario = NEW.id_usuario FOR UPDATE),
+    NEW.id_usuario
+  );
+
 -- 11. Sesiones y Refresh Tokens
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id_token BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

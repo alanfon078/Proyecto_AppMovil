@@ -8,7 +8,13 @@ La API requiere Node.js y MySQL 8. Copia el archivo `.env.example` a `.env`, con
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Importa `database/schema.sql` con un usuario autorizado para crear la base de datos si es una instalación nueva. Para una base previa a F07, respalda la base y ejecuta una sola vez `database/migrations/001_f07.sql` sobre esa base antes de arrancar la API. La migración conserva las versiones históricas de los documentos y copia la residencia de los catálogos anteriores. El respaldo también conserva los registros de pagos y firmas de reglamento que la migración retira de la base activa.
+Importa `database/schema.sql` con un usuario autorizado si es una instalación nueva. Para actualizar, respalda la base, detén la API y aplica las migraciones pendientes en orden sobre la base de inscripciones.
+
+1. `database/migrations/001_f07.sql` para instalaciones previas a F07. Conserva las versiones de documentos y copia la residencia de los catálogos anteriores.
+2. `database/migrations/002_f09.sql` para instalaciones previas a F09. Agrega las preguntas y sus notificaciones.
+3. `database/migrations/003_orden_notificaciones.sql` para instalaciones F09 existentes y para las bases que acaban de pasar por las migraciones anteriores. Aplícala con una cuenta autorizada para crear el trigger y bloquear la fila del destinatario en `usuarios`.
+
+El respaldo conserva los registros de pagos y firmas de reglamento que `001_f07.sql` retira de la base activa.
 
 Configura en `DB_USER` la cuenta que usa la API para consultar y modificar los registros. Instala las dependencias con `npm ci` desde `server`, inicia con `npm start` y comprueba `GET /health`. Configura `UPLOAD_DIR` en una ubicación privada y persistente. El directorio forma parte del respaldo junto con la base de datos.
 

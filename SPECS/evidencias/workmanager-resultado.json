@@ -1,0 +1,14 @@
+{
+  "aviso": "Prueba WorkManager 64e804cb",
+  "avisoId": 23,
+  "publicadoUtc": "2026-11-25T22:03:44.765Z",
+  "consultaUtc": "2026-11-25T22:18:21.0930000+00:00",
+  "detectadoUtc": "2026-11-25T16:18:27.1012173-06:00",
+  "segundosEntreEjecuciones": 914.881,
+  "segundosSegundoPlano": 903.0,
+  "cicloAntes": 1,
+  "cicloDespues": 2,
+  "reanudaciones": 0,
+  "trabajosInmediatosNuevos": 0,
+  "focoFinal": "mCurrentFocus=Window{99c974c u0 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity}"
+}

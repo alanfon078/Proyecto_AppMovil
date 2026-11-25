@@ -19,6 +19,7 @@ import com.example.proyecto_appmovil.model.EstadoPregunta
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.ItsurTextField
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
+import com.example.proyecto_appmovil.ui.components.itsurTextFieldColors
 import com.example.proyecto_appmovil.ui.theme.ItsurOffWhite
 import androidx.compose.ui.platform.LocalContext
 import com.example.proyecto_appmovil.work.NotificacionesWorkManager
@@ -55,11 +56,8 @@ fun StudentQuestionsScreen(
                                 readOnly = true,
                                 label = { Text("Categoría") },
                                 trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-                                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
-                                )
+                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                colors = itsurTextFieldColors()
                             )
                             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                                 CategoriaPregunta.entries.forEach { categoria ->
@@ -86,7 +84,7 @@ fun StudentQuestionsScreen(
                             enabled = !state.isLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("Enviar Pregunta", fontWeight = FontWeight.Bold) }
-                        state.mensajeExito?.let { Text(it, color = Color(0xFF1B5E20), fontWeight = FontWeight.Bold) }
+                        state.mensajeExito?.let { Text(it, color = Color.Black, fontWeight = FontWeight.Bold) }
                     }
                 }
             }

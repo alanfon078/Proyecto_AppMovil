@@ -4,11 +4,11 @@
 **Materia:** Programación Móvil I · 7° Semestre  
 **Equipo:** Montserrat Tenorio Villagómez · Alan Yael Fonseca Ruiz · Dafne Guadalupe Orozco Aguirre  
 **Rama de referencia:** `feature/correcciones2doEntregable`  
-**Última actualización:** 2026-11-24  
+**Última actualización:** 2026-11-25\
 **Estado del documento:** Fuente de verdad única en `SPECS/` (reemplaza los documentos desfasados `01..04` y `ARQUITECTURA_Y_REQUERIMIENTOS_E2.md`)
 
 > [!IMPORTANT]
-> **Alcance de esta entrega documental:** En esta iteración únicamente se consolida el documento de especificación y plan de implementación en `SPECS/` y se retiran los archivos anteriores desfasados de dicha carpeta. **No se modifica código fuente de Android, Backend Node.js ni esquema MySQL en esta entrega**; la implementación técnica se ejecutará de forma incremental en las Fases 3 a 7 definidas en este documento.
+> Las secciones 1 a 4 conservan la auditoría, las decisiones y el plan con los que inició la implementación. La sección 8.3 registra el cierre de la verificación del 25 de noviembre de 2026. [Checklist de resultados finales](#83-checklist-de-resultados-finales)
 
 ---
 
@@ -247,6 +247,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
     - Al aprobar un documento individual, refrescar el estado desde el servidor (que mantiene `en_revision` hasta el dictamen final) y enviar la aprobación final únicamente al pulsar `"Aprobar Trámite"` mediante `POST /api/v1/admin/aspirantes/{id}/aprobar` (no `actualizarAspirante`).
   - **Backend (`server/src/app.js`):**
     - Implementar `POST /api/v1/admin/aspirantes/:id/aprobar` (protegido rol `escolar`) que verifique en MySQL que existan 4 documentos vigentes aprobados para los 4 `tipos_documento` con `obligatorio = TRUE`. Si falta cualquiera, responder `409 Conflict` (`DOCS_INCOMPLETE`); si están completos, actualizar `aspirantes.estado_inscripcion = 'documentacion_aprobada'` y generar notificación al aspirante.
+  - [Resultado verificado con 3 y 4 PDFs](#dictamen-del-expediente-con-3-y-4-pdfs).
 
 - [x] **F08-06 — Eliminar botón de Rechazar Trámite en Expediente del Aspirante (Req 6)**
   - Retirar el botón `"Rechazar Trámite"` de la sección `"Dictamen Final de Inscripción"` en `AdminAspiranteDetailScreen.kt`, dejando únicamente el botón `"Aprobar Trámite"` a ancho completo (condicionado por `F08-05`).
@@ -302,9 +303,9 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 - [x] **F09-03 — Capa de Datos Android (Modelos, Room, DTOs, Retrofit y Repository) (Req 15, Req 16, Req 17, Req 18)**
   - Crear modelo de dominio `PreguntaDuda.kt` (con enums `CategoriaPregunta { FECHAS, DOCUMENTOS }` y `EstadoPregunta { PENDIENTE, RESPONDIDA }`, más metadatos del autor para vista Admin).
-  - Crear `PreguntaDudaEntity.kt` y `PreguntaDudaDao.kt`; registrar en `AppDatabase.kt` (incrementando `version = 2`).
+  - Crear `PreguntaDudaEntity.kt` y `PreguntaDudaDao.kt`; registrar en `AppDatabase.kt`. La versión 3 migra los esquemas locales de F08 y F09 que compartían la versión 2, y admite la actualización desde la versión 1.
   - Crear `PreguntaDto.kt` y `AvisoGeneralDto.kt`; declarar los nuevos endpoints en `InscripcionesApiService.kt`.
-  - Exponer y conectar en `InscripcionesRepository` / `InscripcionesRepositoryImpl`: `crearPregunta()`, `getMisPreguntas()`, `getPreguntasAdmin(categoria, estado)`, `responderPregunta()`, `enviarAvisoGeneral()` y `getNotificacionesNuevas(afterId)`.
+  - Exponer y conectar en `InscripcionesRepository` / `InscripcionesRepositoryImpl`: `crearPregunta()`, `getMisPreguntas()`, `getPreguntasAdmin(categoria, estado)`, `responderPregunta()`, `enviarAvisoGeneral()` y `sincronizarNotificaciones()`. La sincronización serializa la consulta incremental, la publicación y el avance del cursor por usuario.
 
 - [x] **F09-04 — Módulo Alumno "Preguntas y Dudas" (UI + ViewModel) (Req 15)**
   - Agregar tarjeta `"Preguntas y Dudas"` en `HomeScreen.kt` (con badge si hay preguntas recién respondidas) y registrar ruta `Screen.StudentQuestions` en `Screen.kt` y `AppNavHost.kt`.
@@ -344,6 +345,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
     - Si existe sesión activa de rol `aspirante`, consulta `GET /api/v1/notificaciones?leida=false&afterId=<ultimoIdNotificado>`.
     - Persiste en `NotificacionDao` (para reflejarse inmediatamente en `NotificationsScreen` y el badge de `HomeScreen`), dispara notificación en la barra de estado del dispositivo Android para cada aviso nuevo (`tipo == 'duda'`, `'aviso_general'`, `'documento'`, `'fecha'`), y guarda el nuevo `ultimoIdNotificado` en `SessionManager` para evitar duplicados.
   - Programar `PeriodicWorkRequest` (intervalo mínimo de 15 minutos con restricción `NetworkType.CONNECTED`) al iniciar sesión como aspirante, cancelarlo al cerrar sesión, y disparar además una ejecución inmediata (`OneTimeWorkRequest`) al abrir/sincronizar `HomeScreen`, `NotificationsScreen` y `StudentQuestionsScreen`.
+  - [Resultado del ciclo periódico en segundo plano](#aviso-de-workmanager-en-segundo-plano).
 
 ---
 
@@ -414,15 +416,17 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 ---
 
-## 8. Plan de Verificación
+## 8. Plan de verificación y resultados
 
-### 8.1 Verificación de la Entrega Documental Actual
+### 8.1 Verificación de la entrega documental inicial
+
 - [x] Nuevo documento consolidado creado en `SPECS/PLAN_IMPLEMENTACION_Y_SPECS_ITSUR.md`.
 - [x] Archivos anteriores desfasados (`01..04` y `ARQUITECTURA_Y_REQUERIMIENTOS_E2.md`) eliminados de `SPECS/`.
 - [x] Trazabilidad 1-a-1 confirmada para los 19 requerimientos y las 11 decisiones de `/grill-me` distribuidos en las 3 nuevas features (`F07`, `F08`, `F09`).
-- [x] Cero modificaciones a archivos de código fuente Android, Backend ni BD durante esta entrega.
+- [x] Alcance inicial registrado como consolidación documental.
 
 ### 8.2 Criterios de Verificación para las Fases de Implementación (Fases 3 a 7)
+
 1. **Base de Datos y Backend (Fase 3):** Importar `schema.sql` en MySQL 8 limpio, verificar ausencia de `pagos`/`firmas_reglamento`, presencia de `preguntas_dudas`, y probar con suite HTTP (`supertest` o scripts REST) cada endpoint del contrato de la Sección 6 incluyendo casos de borde (`401` sin JWT, `403` aspirante intentando rutas `/admin/*`, `409` al aprobar trámite con `< 4` documentos aprobados, contraseña de 7 caracteres rechazada con `422`).
 2. **Compilación y UI Android (Fases 4–6):** Ejecutar `./gradlew assembleDebug testDebugUnitTest`, verificar visualmente modo claro con texto `#000000` incluso con el dispositivo en modo oscuro del sistema, logo ITSUR en Splash/Login/Launcher, sin botones demo ni pagos, y línea de tiempo de 4 pasos.
 3. **Flujos Críticos End-to-End (Fase 7):**
@@ -431,3 +435,41 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
    - Crear, editar y eliminar una Fecha Límite como Admin -> comprobar reflejo inmediato en vista del Alumno.
    - Enviar pregunta de tipo `Documentos` como Alumno -> como Admin filtrar `Documentos` + `Pendientes por responder`, verificar autor/fecha, responder -> confirmar aparición de la notificación en `NotificationsScreen` y en la barra de estado del dispositivo Android (`WorkManager`).
    - Emitir un Aviso General como Admin -> confirmar recepción en todos los alumnos activos (in-app + notificación del dispositivo Android).
+   - Tras la sincronización inicial, dejar la app del aspirante en segundo plano durante al menos 15 minutos. Publicar un aviso nuevo y confirmar su recepción durante la ejecución periódica de WorkManager sin reabrir la app ni forzar la tarea.
+
+### 8.3 Checklist de resultados finales
+
+**Verificación cerrada el 25 de noviembre de 2026** en el emulador Android `Virtual_Phone`, con la API local y una instancia aislada de MySQL 8.0.46.
+
+- [x] **API y MySQL.** 97 comprobaciones aprobadas y 0 fallos en las 31 rutas vigentes del contrato. Incluyeron el registro con residencia libre, autenticación y roles, eliminación de pagos del esquema y rechazo de contraseña corta. [Registro de la suite HTTP](evidencias/suite-http.txt)
+- [x] **Compilación y pruebas Android.** `assembleDebug`, 5 pruebas unitarias y 3 instrumentadas aprobadas. Se comprobó la actualización de Room a la versión 3 desde la versión 1 y desde ambas variantes de la versión 2. [Registro de pruebas instrumentadas](evidencias/android-instrumentadas.txt)
+- [x] **Identidad y flujo del aspirante.** Se comprobó el tema claro con el sistema en modo oscuro y el logo en Login. Se revisaron los recursos de Splash y Launcher y la línea de tiempo de cuatro etapas.
+- [x] **Expediente y dictamen.** Se cargó un PDF desde el selector de Android y se probó la navegación entre páginas, el zoom, el desplazamiento y la apertura externa. El dictamen se bloqueó con 3 de 4 PDFs aprobados y se guardó en MySQL al confirmar con los 4. [Evidencia del dictamen](#dictamen-del-expediente-con-3-y-4-pdfs)
+- [x] **Fechas límite.** El alta, la edición y la eliminación se reflejaron con la pestaña del aspirante abierta.
+- [x] **Preguntas y avisos.** Se envió una pregunta desde Android, se localizó con los filtros combinados y se respondió desde Control Escolar. Se confirmó la entrega al aspirante en la app y en Android. La suite HTTP comprobó el envío de avisos generales a los aspirantes activos. [Registro de la suite HTTP](evidencias/suite-http.txt)
+- [x] **WorkManager en segundo plano.** Un aviso nuevo llegó a la bandeja del sistema durante el siguiente ciclo periódico. La app permaneció 15 min 3 s en segundo plano. [Evidencia del aviso](#aviso-de-workmanager-en-segundo-plano)
+
+#### Dictamen del expediente con 3 y 4 PDFs
+
+Se usó el mismo expediente de prueba, `ITSUR-2026-00004`, desde la cuenta de Control Escolar.
+
+| Caso | Resultado verificado | Evidencia |
+| --- | --- | --- |
+| **3 de 4 PDFs aprobados** | «Aprobar Trámite» se mostró deshabilitado. Al pulsarlo, el expediente siguió en revisión. La prueba directa por API recibió `409 Conflict`. | [Captura del bloqueo](evidencias/tramite-bloqueado-3-de-4.png) · [Suite HTTP](evidencias/suite-http.txt) |
+| **4 de 4 PDFs aprobados** | El dictamen individual del cuarto PDF habilitó «Aprobar Trámite». Al pulsarlo, la app mostró «El trámite está aprobado» y el aspirante lo vio como «Aceptado». MySQL devolvió `estado_inscripcion = 'documentacion_aprobada'` y 4 documentos aprobados. | [Botón habilitado](evidencias/tramite-habilitado-4-de-4.png) · [Dictamen confirmado](evidencias/tramite-aprobado.png) |
+
+La captura del botón habilitado se tomó antes del ajuste final al texto de ayuda del dictamen.
+
+#### Aviso de WorkManager en segundo plano
+
+Las horas corresponden a Ciudad de México. El aviso `Prueba WorkManager 64e804cb` se publicó después de terminar las sincronizaciones iniciales.
+
+| Hora | Evento verificado |
+| --- | --- |
+| `16:03:32` | La app pasó a segundo plano y el emulador dejó el Launcher al frente. |
+| `16:03:44` | La API publicó el aviso general y MySQL registró el aviso `23` para el aspirante de prueba. |
+| `16:18:21` | La consulta incremental del worker terminó con `200 OK` tras reintentar una primera consulta que recibió `401`. |
+| `16:18:27` | El monitoreo detectó el aviso nuevo en la bandeja de notificaciones de Android. |
+| `16:18:35` | Se completaron 15 min 3 s con la app en segundo plano y el aviso visible en la bandeja. |
+
+El contador de la misma tarea periódica pasó de 1 a 2 ejecuciones con 15 min 14,9 s entre ellas. El historial de Android registró cero reanudaciones de la app y WorkManager registró cero ejecuciones inmediatas nuevas. [Captura del aviso](evidencias/aviso-en-segundo-plano.png) · [Resultado](evidencias/workmanager-resultado.json) · [Registro de la API](evidencias/workmanager-api.txt) · [Monitoreo en segundo plano](evidencias/workmanager-monitoreo.txt) · [WorkManager antes](evidencias/workmanager-antes.json) · [WorkManager después](evidencias/workmanager-despues.json)

@@ -56,18 +56,33 @@ class SessionManager(context: Context) {
     fun getUserRole(): String? = sharedPreferences.getString(KEY_USER_ROLE, null)
 
     @Synchronized
-    fun getUltimoIdNotificado(): Long = sharedPreferences.getLong(KEY_ULTIMO_ID_NOTIFICADO, 0L)
+    fun getUltimoIdNotificado(): Long =
+        sharedPreferences.getLong(
+            "$KEY_ULTIMO_ID_NOTIFICADO.${getUserId()}",
+            sharedPreferences.getLong(KEY_ULTIMO_ID_NOTIFICADO, 0L)
+        )
 
     @Synchronized
     fun saveUltimoIdNotificado(id: Long) {
         if (id > getUltimoIdNotificado()) {
-            sharedPreferences.edit().putLong(KEY_ULTIMO_ID_NOTIFICADO, id).apply()
+            sharedPreferences.edit().putLong("$KEY_ULTIMO_ID_NOTIFICADO.${getUserId()}", id).apply()
         }
     }
 
     @Synchronized
     fun clearSession() {
-        sharedPreferences.edit().clear().apply()
+        val userId = getUserId()
+        val cursor = getUltimoIdNotificado()
+        sharedPreferences.edit().apply {
+            if (userId > 0 && cursor > 0) putLong("$KEY_ULTIMO_ID_NOTIFICADO.$userId", cursor)
+            remove(KEY_AUTH_TOKEN)
+            remove(KEY_REFRESH_TOKEN)
+            remove(KEY_USER_ID)
+            remove(KEY_ASPIRANTE_ID)
+            remove(KEY_USER_ROLE)
+            remove(KEY_USER_EMAIL)
+            remove(KEY_ULTIMO_ID_NOTIFICADO)
+        }.apply()
     }
 
     fun isLoggedIn(): Boolean = getTokens() != null

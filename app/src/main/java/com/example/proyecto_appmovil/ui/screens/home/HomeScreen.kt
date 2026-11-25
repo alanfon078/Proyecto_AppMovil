@@ -50,7 +50,9 @@ fun HomeScreen(
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) {}
+    ) { concedido ->
+        if (concedido) NotificacionesWorkManager.syncNow(context)
+    }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -208,7 +210,7 @@ fun HomeContent(
                 titulo = "Preguntas y Dudas",
                 descripcion = "Consulta dudas sobre Fechas y Documentos",
                 icono = Icons.Default.QuestionAnswer,
-                badgeCount = uiState.notificacionesNoLeidasCount,
+                badgeCount = uiState.respuestasNoLeidasCount,
                 onClick = onNavigateToQuestions
             )
 

@@ -1,0 +1,98 @@
+OK   Esquema en MySQL 8.0.46 con preguntas y sin tablas de pagos ni firmas
+OK   Servidor operativo
+OK   Catálogo activo real
+OK   Registro rechaza contraseña de 7 caracteres
+OK   Registro real con residencia libre y JWT
+OK   Segundo aspirante con identidad propia
+OK   Tercer aspirante para comprobar exclusión de inactivos
+OK   No duplica correo, CURP o usuario
+OK   Login JWT de Control Escolar
+OK   Login por nombre de usuario
+OK   Login con credenciales inválidas
+OK   Aspirante inactivo no puede iniciar sesión
+OK   401 al acceder sin JWT
+OK   403 aspirante en ruta de Control Escolar
+OK   403 Control Escolar en ruta exclusiva del aspirante
+OK   GET perfil aislado por identidad
+OK   PUT teléfono, domicilio, estado y municipio
+OK   Cambiar perfil de A deja intacto el perfil de B
+OK   Cambio de contraseña de 7 caracteres rechazado
+OK   Cambio de contraseña valida contraseña actual
+OK   Cambio de contraseña real
+OK   Contraseña antigua queda inválida
+OK   Contraseña nueva permite login
+OK   Refresh rota la sesión
+OK   Refresh anterior queda revocado
+OK   Access token previo al refresh queda revocado
+OK   Logout real
+OK   Access token tras logout queda inválido
+OK   Refresh tras logout queda inválido
+OK   Resumen real de aspirante nuevo
+OK   Aspirante nuevo sin archivos cargados
+OK   Buscador por CURP y estado combinados
+OK   Expediente del aspirante correcto
+OK   Expediente nuevo informa los 4 tipos pendientes
+OK   Rechaza SHA-256 que no corresponde al archivo
+OK   Rechaza PDF mayor a 5 MB
+OK   Rechaza archivo sin cabecera PDF
+OK   Rechaza pseudopdf con marcadores y sin estructura
+OK   Sube ACTA_NACIMIENTO y persiste su hash
+OK   Sube CURP y persiste su hash
+OK   Sube CERTIFICADO_BACHILLERATO y persiste su hash
+OK   Sube COMPROBANTE_DOMICILIO y persiste su hash
+OK   Aspirante B no ve los archivos de A
+OK   Aspirante B no puede borrar el PDF de A
+OK   Control Escolar ve los 4 archivos del expediente de A
+OK   Control Escolar descarga PDF original
+OK   El aspirante no accede a la ruta administrativa de PDF
+OK   Carga PDF con nombre Unicode
+OK   Descarga PDF con nombre Unicode
+OK   Borra documento pendiente del aspirante y deja de servirlo
+OK   PDF borrado deja de servirse
+OK   No rechaza documento sin motivo
+OK   Dictamen de rechazo individual con observación
+OK   Lista de aspirantes con observaciones por nombre
+OK   Nueva versión sustituye vigente y vuelve a revisión
+OK   Aprueba documento 1
+OK   Aprueba documento 2
+OK   Aprueba documento 3
+OK   Bloquea aprobación final con 3 de 4
+OK   Impide borrar documento aprobado
+OK   Aprueba el cuarto PDF sin dictaminar automáticamente
+OK   Permite aprobación final con 4 de 4
+OK   El aspirante ve trámite aprobado
+OK   Fecha inválida rechazada
+OK   Aspirante no puede agregar fechas
+OK   Control Escolar crea fecha con tipo y días restantes
+OK   Aspirante obtiene fechas vigentes ordenadas
+OK   Control Escolar edita fecha
+OK   Aspirante ve la fecha editada al consultar
+OK   Control Escolar elimina fecha
+OK   Aspirante deja de ver fecha eliminada
+OK   Rechaza categoría de pregunta ajena al contrato
+OK   Aspirante registra pregunta de documentos
+OK   Otro aspirante registra pregunta de fechas
+OK   El historial de A contiene únicamente sus preguntas
+OK   Panel combina documentos y pendientes y devuelve autor/fecha
+OK   No acepta respuesta de solo espacios
+OK   Control Escolar responde y persiste fecha/estado
+OK   Aspirante encuentra la respuesta en su historial
+OK   Bandeja contiene notificaciones de pregunta, documento y trámite
+OK   Aviso general llega a todos los aspirantes activos
+OK   El aviso excluye inactivos y Control Escolar
+OK   Consulta incremental con afterId y no leídas
+OK   B recibe aviso general y no recibe respuesta de A
+OK   B no marca leída una notificación de A
+OK   A marca su notificación como leída
+OK   Consulta incremental excluye notificación ya leída
+OK   Marca todas las notificaciones de A como leídas
+OK   No quedan avisos sin leer al marcar todos
+OK   B no borra una notificación de A
+OK   A elimina una notificación propia
+OK   Aviso eliminado no vuelve a aparecer
+OK   Retirado GET de pago
+OK   Retirado POST de pago
+OK   Retirado catálogo de estados
+OK   Retirado catálogo de municipios
+OK   Retirado auth/me
+RESULTADO 97 OK, 0 fallos, 31 rutas de contrato ejercitadas

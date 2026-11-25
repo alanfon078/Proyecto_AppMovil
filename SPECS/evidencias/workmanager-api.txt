@@ -1,0 +1,7 @@
+ITSUR HTTP temporal escuchando en 3000
+2026-11-25T22:03:02.855Z GET /notificaciones 200
+2026-11-25T22:03:04.852Z GET /notificaciones?leida=false&afterId=0 200
+2026-11-25T22:03:06.372Z GET /notificaciones?leida=false&afterId=20 200
+2026-11-25T22:03:44.763Z POST /admin/notificaciones/aviso-general 201
+2026-11-25T22:18:19.928Z GET /api/v1/notificaciones?leida=false&afterId=20 401
+2026-11-25T22:18:21.093Z GET /notificaciones?leida=false&afterId=20 200

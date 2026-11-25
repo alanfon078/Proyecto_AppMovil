@@ -23,14 +23,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -68,7 +69,6 @@ fun AdminHomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) { viewModel.cargarAspirantes() }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) viewModel.cargarAspirantes()
@@ -83,10 +83,12 @@ fun AdminHomeScreen(
         onNavigateToAspiranteDetail = onNavigateToAspiranteDetail,
         onLogout = onLogout,
         onBusquedaChange = viewModel::onBusquedaChange,
-        onFiltroEstadoChange = viewModel::onFiltroEstadoChange
+        onFiltroEstadoChange = viewModel::onFiltroEstadoChange,
+        onRefresh = viewModel::cargarAspirantes
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminHomeContent(
     uiState: AdminHomeUiState,
@@ -94,7 +96,8 @@ fun AdminHomeContent(
     onNavigateToAspiranteDetail: (String) -> Unit,
     onLogout: () -> Unit,
     onBusquedaChange: (String) -> Unit,
-    onFiltroEstadoChange: (EstadoInscripcion?) -> Unit
+    onFiltroEstadoChange: (EstadoInscripcion?) -> Unit,
+    onRefresh: () -> Unit = {}
 ) {
     AdminDrawerScaffold(
         title = "Panel de Control Escolar",
@@ -153,35 +156,41 @@ fun AdminHomeContent(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            PullToRefreshBox(
+                isRefreshing = uiState.isLoading,
+                onRefresh = onRefresh,
+                modifier = Modifier.weight(1f)
             ) {
-                items(uiState.aspirantes, key = { it.id }) { aspirante ->
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(aspirante.nombreCompleto, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ItsurVinoOscuro)
-                                    Text("Folio: ${aspirante.folioAspirante} · ${aspirante.carrera}", style = MaterialTheme.typography.bodySmall, color = ItsurOnSurfaceVariant)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(uiState.aspirantes, key = { it.id }) { aspirante ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(aspirante.nombreCompleto, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ItsurVinoOscuro)
+                                        Text("Folio: ${aspirante.folioAspirante} · ${aspirante.carrera}", style = MaterialTheme.typography.bodySmall, color = ItsurOnSurfaceVariant)
+                                    }
+                                    StatusChip(status = aspirante.estadoInscripcion.name)
                                 }
-                                StatusChip(status = aspirante.estadoInscripcion.name)
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Button(
-                                onClick = { onNavigateToAspiranteDetail(aspirante.id) },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = ItsurVinoOscuro)
-                            ) {
-                                Text("Ver Expediente", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = { onNavigateToAspiranteDetail(aspirante.id) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = ItsurVinoOscuro)
+                                ) {
+                                    Text("Ver Expediente", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
                             }
                         }
                     }

@@ -12,6 +12,9 @@ interface FechaImportanteDao {
     @Query("SELECT * FROM fechas_importantes WHERE activa = 1 ORDER BY fechaLimite ASC")
     fun getFechasVigentesFlow(): Flow<List<FechaImportanteEntity>>
 
+    @Query("DELETE FROM fechas_importantes WHERE idFecha = :id")
+    suspend fun eliminar(id: Long)
+
     @Query("DELETE FROM fechas_importantes")
     suspend fun clearAll()
 }

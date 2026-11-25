@@ -15,6 +15,15 @@ import com.example.proyecto_appmovil.data.local.entity.PreguntaDudaEntity
 import com.example.proyecto_appmovil.model.PreguntaDuda
 import com.example.proyecto_appmovil.model.CategoriaPregunta
 import com.example.proyecto_appmovil.model.EstadoPregunta
+import com.example.proyecto_appmovil.data.local.entity.FechaImportanteEntity
+import com.example.proyecto_appmovil.data.local.entity.NotificacionEntity
+import com.example.proyecto_appmovil.data.remote.dto.FechaImportanteDto
+import com.example.proyecto_appmovil.data.remote.dto.NotificacionItemDto
+import com.example.proyecto_appmovil.model.FechaImportante
+import com.example.proyecto_appmovil.model.Notificacion
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 internal fun AspiranteDto.toEntity() = AspiranteEntity(
     idAspirante = idAspirante,
@@ -62,15 +71,15 @@ private fun String.toEstadoInscripcion(): EstadoInscripcion = when (lowercase())
 }
 
 internal fun DocumentoItemDto.toEntity() = DocumentoEntity(
-    idLocal = id,
+    idLocal = requireNotNull(id),
     idRemoto = id,
     idAspirante = idAspirante,
     idTipoDocumento = idTipoDocumento,
     tipoCodigo = tipoCodigo,
     nombreOriginal = nombreOriginal,
-    tamanoBytes = tamanoBytes,
+    tamanoBytes = requireNotNull(tamanoBytes),
     mimeType = mimeType,
-    version = version,
+    version = requireNotNull(version),
     estado = estado,
     observaciones = observaciones,
     fechaSubida = fechaSubida
@@ -92,8 +101,7 @@ private fun DocumentoEntity.toModel(tipo: TipoDocumento) = Documento(
     estado = when (estado.lowercase()) {
         "aprobado", "validado" -> EstadoDocumento.VALIDADO
         "requiere_correccion", "rechazado", "presencial" -> EstadoDocumento.RECHAZADO
-        "pendiente" -> EstadoDocumento.PENDIENTE
-        "subido" -> EstadoDocumento.SUBIDO
+        "pendiente", "subido" -> EstadoDocumento.SUBIDO
         else -> error("Estado de documento desconocido: $estado")
     },
     observaciones = observaciones.orEmpty(),
@@ -114,6 +122,25 @@ internal fun PreguntaDto.toEntity() = PreguntaDudaEntity(
 )
 
 internal fun PreguntaDto.toModel() = toEntity().toModel()
+
+internal fun NotificacionItemDto.toEntity() = NotificacionEntity(
+    idNotificacion = id, idRemoto = id, idUsuario = idUsuario, tipo = tipo,
+    titulo = titulo, mensaje = mensaje, leida = leida, fechaEnvio = fechaEnvio, idPregunta = idPregunta
+)
+
+internal fun NotificacionEntity.toModel() =
+    Notificacion((idRemoto ?: idNotificacion).toString(), titulo, mensaje, fechaEnvio, leida, tipo)
+
+internal fun FechaImportanteDto.toEntity() =
+    FechaImportanteEntity(idFecha, titulo, descripcion.orEmpty(), tipo, fechaLimite, idCarrera, activa)
+
+internal fun FechaImportanteEntity.toModel() = FechaImportante(
+    idFecha.toString(), titulo, descripcion, fechaLimite,
+    ChronoUnit.DAYS.between(
+        LocalDate.now(ZoneId.of("America/Mexico_City")), LocalDate.parse(fechaLimite.take(10))
+    ).toInt(),
+    tipo
+)
 
 internal fun PreguntaDudaEntity.toModel() = PreguntaDuda(
     id = idPregunta.toString(),

@@ -29,10 +29,12 @@ object NotificacionesWorkManager {
     }
 
     fun syncNow(context: Context) {
-        val request = OneTimeWorkRequestBuilder<NotificacionesSyncWorker>().build()
+        val request = OneTimeWorkRequestBuilder<NotificacionesSyncWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             IMMEDIATE_NAME,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             request
         )
     }

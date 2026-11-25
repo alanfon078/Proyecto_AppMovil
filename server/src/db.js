@@ -19,6 +19,15 @@ async function initDb() {
   await pool.query('SELECT estado_residencia, municipio_residencia FROM aspirantes LIMIT 0');
   await pool.query('SELECT vigente FROM documentos LIMIT 0');
   await pool.query('SELECT token_hash FROM refresh_tokens LIMIT 0');
+  try {
+    await pool.query('SELECT id_pregunta FROM preguntas_dudas LIMIT 0');
+    await pool.query('SELECT id_pregunta FROM notificaciones LIMIT 0');
+  } catch (error) {
+    if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(error.code)) {
+      throw new Error('Aplica database/migrations/002_f09.sql antes de iniciar la API.');
+    }
+    throw error;
+  }
 }
 
 async function inTransaction(work) {

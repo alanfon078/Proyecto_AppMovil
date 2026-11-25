@@ -98,6 +98,7 @@ fun AdminFechasContent(
     onGuardar: () -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
+    var fechaPorEliminar by remember { mutableStateOf<FechaImportante?>(null) }
     val datePickerState = rememberDatePickerState()
 
     AdminDrawerScaffold(
@@ -155,7 +156,7 @@ fun AdminFechasContent(
                                 IconButton(onClick = { onAbrirEditar(fecha) }) {
                                     Icon(Icons.Default.Edit, contentDescription = "Editar")
                                 }
-                                IconButton(onClick = { onEliminar(fecha.id) }) {
+                                IconButton(onClick = { fechaPorEliminar = fecha }, enabled = !uiState.isLoading) {
                                     Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                                 }
                             }
@@ -164,6 +165,20 @@ fun AdminFechasContent(
                 }
             }
         }
+    }
+    fechaPorEliminar?.let { fecha ->
+        AlertDialog(
+            onDismissRequest = { fechaPorEliminar = null },
+            title = { Text("Eliminar fecha límite") },
+            text = { Text("¿Quieres eliminar «${fecha.titulo}»?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    fechaPorEliminar = null
+                    onEliminar(fecha.id)
+                }) { Text("Eliminar", color = Color.Black) }
+            },
+            dismissButton = { TextButton(onClick = { fechaPorEliminar = null }) { Text("Cancelar", color = Color.Black) } }
+        )
     }
 
     if (uiState.showDialogNuevaFecha) {
@@ -199,7 +214,7 @@ fun AdminFechasContent(
                         onClick = { showDatePicker = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(if (uiState.nuevaFechaLimite.isBlank()) "Seleccionar fecha" else uiState.nuevaFechaLimite)
+                        Text(uiState.nuevaFechaLimite.ifBlank { "Seleccionar fecha" }, color = Color.Black)
                     }
                     uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
                 }
@@ -208,7 +223,7 @@ fun AdminFechasContent(
                 Button(onClick = onGuardar, enabled = !uiState.isLoading) { Text("Guardar") }
             },
             dismissButton = {
-                TextButton(onClick = onCerrarDialogo) { Text("Cancelar") }
+                TextButton(onClick = onCerrarDialogo) { Text("Cancelar", color = Color.Black) }
             }
         )
     }
@@ -223,10 +238,10 @@ fun AdminFechasContent(
                         onFechaLimiteChange(fecha)
                     }
                     showDatePicker = false
-                }) { Text("Aceptar") }
+                }) { Text("Aceptar", color = Color.Black) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar", color = Color.Black) }
             }
         ) {
             DatePicker(state = datePickerState)

@@ -2,13 +2,12 @@ package com.example.proyecto_appmovil.data.repository
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.app.NotificationManagerCompat
 import androidx.room.withTransaction
 import com.example.proyecto_appmovil.data.local.AppDatabase
 import com.example.proyecto_appmovil.data.local.entity.AspiranteEntity
 import com.example.proyecto_appmovil.data.local.entity.CarreraEntity
 import com.example.proyecto_appmovil.data.local.entity.DocumentoEntity
-import com.example.proyecto_appmovil.data.local.entity.FechaImportanteEntity
-import com.example.proyecto_appmovil.data.local.entity.NotificacionEntity
 import com.example.proyecto_appmovil.data.local.entity.UsuarioEntity
 import com.example.proyecto_appmovil.data.local.session.SessionManager
 import com.example.proyecto_appmovil.data.local.session.SessionTokens
@@ -32,12 +31,14 @@ import com.example.proyecto_appmovil.model.ResumenAspirante
 import com.example.proyecto_appmovil.model.TipoDocumento
 import com.example.proyecto_appmovil.model.PreguntaDuda
 import com.example.proyecto_appmovil.util.FileHashHelper
+import com.example.proyecto_appmovil.work.NotificacionesWorkManager
 import com.google.gson.JsonParseException
 import com.google.gson.JsonParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -52,7 +53,6 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.Locale
-import androidx.work.WorkManager
 
 class InscripcionesRepositoryImpl(
     private val context: Context,
@@ -137,8 +137,8 @@ class InscripcionesRepositoryImpl(
 
     private fun clearLocalSession() {
         session.clearSession()
-        WorkManager.getInstance(context).cancelUniqueWork(com.example.proyecto_appmovil.work.NotificacionesWorkManager.PERIODIC_NAME)
-        WorkManager.getInstance(context).cancelAllWorkByTag(com.example.proyecto_appmovil.work.NotificacionesSyncWorker::class.java.name)
+        NotificacionesWorkManager.cancel(context)
+        NotificationManagerCompat.from(context).cancelAll()
         database.clearAllTables()
         FileHashHelper.docsDirectory(context).deleteRecursively()
         File(context.filesDir, "documentos").deleteRecursively()
@@ -210,15 +210,16 @@ class InscripcionesRepositoryImpl(
     }
 
     override suspend fun getNotificaciones(): List<Notificacion> = request {
-        val response = api.getNotificaciones()
+        val response = api.getNotificaciones().map { it.toEntity() }
         database.withTransaction {
             notificaciones.clearAll()
-            notificaciones.insertAll(response.map {
-                NotificacionEntity(it.id, it.id, it.idUsuario, it.tipo, it.titulo, it.mensaje, it.leida, it.fechaEnvio)
-            })
+            notificaciones.insertAll(response)
         }
-        response.map { Notificacion(it.id.toString(), it.titulo, it.mensaje, it.fechaEnvio, it.leida) }
+        response.map { it.toModel() }
     }.getOrThrow()
+
+    override fun observarNotificaciones(): Flow<List<Notificacion>> =
+        notificaciones.observarTodas().map { rows -> rows.map { it.toModel() } }
 
     override suspend fun marcarNotificacionLeida(id: String) = request {
         val remoteId = parseId(id)
@@ -241,11 +242,7 @@ class InscripcionesRepositoryImpl(
         val response = api.getFechasImportantes()
         database.withTransaction {
             fechas.clearAll()
-            fechas.insertAll(response.map {
-                FechaImportanteEntity(
-                    it.idFecha, it.titulo, it.descripcion.orEmpty(), it.tipo, it.fechaLimite, it.idCarrera, it.activa
-                )
-            })
+            fechas.insertAll(response.map { it.toEntity() })
         }
         response.map {
             FechaImportante(
@@ -254,14 +251,17 @@ class InscripcionesRepositoryImpl(
         }
     }.getOrThrow()
 
+    override fun observarFechasImportantes(): Flow<List<FechaImportante>> =
+        fechas.getFechasVigentesFlow().map { rows -> rows.map { it.toModel() } }
+
     override suspend fun crearFechaImportante(
         titulo: String,
         descripcion: String,
         tipo: String,
         fechaLimite: String
     ): Result<Unit> = request {
-        api.crearFechaImportante(CrearFechaImportanteDto(titulo, descripcion, tipo, fechaLimite))
-        Unit
+        val creada = api.crearFechaImportante(CrearFechaImportanteDto(titulo, descripcion, tipo, fechaLimite))
+        fechas.insertAll(listOf(creada.toEntity()))
     }
 
     override suspend fun actualizarFechaImportante(
@@ -271,15 +271,17 @@ class InscripcionesRepositoryImpl(
         tipo: String,
         fechaLimite: String
     ): Result<Unit> = request {
-        api.actualizarFechaImportante(
+        val actualizada = api.actualizarFechaImportante(
             parseId(id),
             CrearFechaImportanteDto(titulo, descripcion, tipo, fechaLimite)
         )
-        Unit
+        fechas.insertAll(listOf(actualizada.toEntity()))
     }
 
     override suspend fun eliminarFechaImportante(id: String): Result<Unit> = request {
-        api.eliminarFechaImportante(parseId(id)).requireSuccess()
+        val remoteId = parseId(id)
+        api.eliminarFechaImportante(remoteId).requireSuccess()
+        fechas.eliminar(remoteId)
     }
 
     override fun getCarrerasFlow(): Flow<List<CarreraEntity>> = catalogos.getCarrerasFlow()
@@ -302,7 +304,7 @@ class InscripcionesRepositoryImpl(
     }.getOrThrow()
 
     override suspend fun getDocumentosAspirante(id: String): List<Documento> = request {
-        api.getDocumentosAspirante(parseId(id)).map { it.toEntity() }.completeSlots()
+        api.getDocumentosAspirante(parseId(id)).filter { it.id != null }.map { it.toEntity() }.completeSlots()
     }.getOrThrow()
 
     override suspend fun descargarDocumentoParaPrevisualizacion(
@@ -386,24 +388,15 @@ class InscripcionesRepositoryImpl(
         api.enviarAvisoGeneral(AvisoGeneralDto(titulo, mensaje)).notificados
     }
 
-    override suspend fun getNotificacionesNuevas(afterId: Long): List<Notificacion> = request {
-        val response = api.getNotificacionesNuevas(false, afterId)
-        database.withTransaction {
-            notificaciones.insertAll(response.map {
-                NotificacionEntity(
-                    idNotificacion = it.id,
-                    idRemoto = it.id,
-                    idUsuario = it.idUsuario,
-                    tipo = it.tipo,
-                    titulo = it.titulo,
-                    mensaje = it.mensaje,
-                    leida = it.leida,
-                    fechaEnvio = it.fechaEnvio,
-                    idPregunta = it.idPregunta
-                )
-            })
+    override suspend fun sincronizarNotificaciones(publicar: (Notificacion) -> Boolean): Unit = request {
+        if (!session.isLoggedIn() || session.getUserRole() != "aspirante") return@request
+        val response = api.getNotificacionesNuevas(false, session.getUltimoIdNotificado())
+            .map { it.toEntity() }
+        notificaciones.insertAll(response)
+        for (aviso in response) {
+            if (!publicar(aviso.toModel())) break
+            session.saveUltimoIdNotificado(aviso.idNotificacion)
         }
-        response.map { Notificacion(it.id.toString(), it.titulo, it.mensaje, it.fechaEnvio, it.leida) }
     }.getOrThrow()
 
     private fun parseId(id: String): Long =

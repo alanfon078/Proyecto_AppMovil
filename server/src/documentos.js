@@ -3,6 +3,7 @@ const fsSync = require('node:fs');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const multer = require('multer');
+const { PDFDocument } = require('pdf-lib');
 const { z } = require('zod');
 const { pool, inTransaction } = require('./db');
 const { bloquearAspirante, getAspirante } = require('./aspirantes');
@@ -17,11 +18,12 @@ const upload = multer({
   limits: { files: 1, fields: 2, parts: 4, fieldSize: 256, fileSize: maxPdfBytes + 1 }
 }).single('archivo');
 
-const seleccionarDocumentos =
-  'SELECT d.id_documento, d.id_aspirante, d.id_tipo_documento, t.codigo AS tipo_codigo,' +
+const camposDocumento =
   ' d.nombre_original, d.tamano_bytes, d.tipo_mime, d.hash_sha256, d.version, d.fecha_subida, d.estado,' +
   ' (SELECT r.observaciones FROM revisiones r WHERE r.id_documento = d.id_documento' +
-  ' ORDER BY r.id_revision DESC LIMIT 1) AS observaciones' +
+  ' ORDER BY r.id_revision DESC LIMIT 1) AS observaciones';
+const seleccionarDocumentos =
+  'SELECT d.id_documento, d.id_aspirante, d.id_tipo_documento, t.codigo AS tipo_codigo,' + camposDocumento +
   ' FROM documentos d JOIN tipos_documento t ON t.id_tipo_documento = d.id_tipo_documento';
 
 async function initUploads() {
@@ -87,8 +89,17 @@ const getMisDocumentos = route(async (req, res) => {
 
 const getDocumentosAspirante = route(async (req, res) => {
   const id = idSchema.parse(req.params.id);
-  await getAspirante(pool, id);
-  res.json(await listarDocumentos(id));
+  const aspirante = await getAspirante(pool, id);
+  const [documentos] = await pool.execute(
+    'SELECT d.id_documento, t.id_tipo_documento, t.codigo AS tipo_codigo,' + camposDocumento +
+    ' FROM tipos_documento t LEFT JOIN documentos d' +
+    ' ON d.id_tipo_documento = t.id_tipo_documento AND d.id_aspirante = ? AND d.vigente = TRUE' +
+    ' WHERE t.obligatorio = TRUE AND t.codigo IN (?, ?, ?, ?) ORDER BY t.orden, t.id_tipo_documento',
+    [id, ...tiposObligatorios]
+  );
+  res.json(documentos.map(doc => ({
+    ...doc, id_aspirante: aspirante.id_aspirante, subido: doc.id_documento != null, estado: doc.estado ?? 'pendiente'
+  })));
 });
 
 function nombreOriginal(file) {
@@ -118,6 +129,9 @@ const subirDocumento = route(async (req, res) => {
       !file.buffer.subarray(-1024).includes(Buffer.from('%%EOF'))) {
     throw new HttpError(422, 'INVALID_PDF', 'Adjunta un archivo PDF válido');
   }
+  if (file.size > maxPdfBytes) {
+    throw new HttpError(413, 'FILE_TOO_LARGE', 'El PDF debe pesar como máximo 5 MB');
+  }
   const { tipoCodigo, hashSha256 } = z.object({
     tipoCodigo: z.enum(tiposObligatorios),
     hashSha256: z.string().regex(/^[a-f0-9]{64}$/i, 'Indica un hash SHA-256 válido')
@@ -125,6 +139,12 @@ const subirDocumento = route(async (req, res) => {
   const hashReal = createHash('sha256').update(file.buffer).digest('hex');
   if (hashReal !== hashSha256.toLowerCase()) {
     throw new HttpError(422, 'HASH_MISMATCH', 'El archivo recibido no coincide con su hash SHA-256');
+  }
+  try {
+    const pdf = await PDFDocument.load(file.buffer, { throwOnInvalidObject: true, updateMetadata: false });
+    if (!pdf.getPageCount()) throw new Error('PDF sin páginas');
+  } catch {
+    throw new HttpError(422, 'INVALID_PDF', 'Adjunta un PDF válido, con páginas y sin contraseña');
   }
   const idAspirante = req.user.idAspirante;
   const ruta = randomUUID() + '.pdf';
@@ -285,11 +305,13 @@ const descargarArchivoDocumento = route(async (req, res) => {
   if (!stat.isFile()) {
     throw new HttpError(404, 'FILE_NOT_FOUND', 'El archivo PDF no se encuentra en el servidor');
   }
-  const nombreSeguro = (doc.nombre_original || `documento_${id}.pdf`).replace(/["\r\n\\]/g, '_');
+  const nombreAlternativo = `documento_${id}.pdf`;
+  const nombreCodificado = encodeURIComponent(doc.nombre_original || nombreAlternativo)
+    .replace(/['()*]/g, char => '%' + char.charCodeAt(0).toString(16).toUpperCase());
   res.set({
     'Content-Type': 'application/pdf',
     'Content-Length': String(stat.size),
-    'Content-Disposition': `inline; filename="${nombreSeguro}"`,
+    'Content-Disposition': `inline; filename="${nombreAlternativo}"; filename*=UTF-8''${nombreCodificado}`,
     'Cache-Control': 'private, no-store'
   });
   const stream = fsSync.createReadStream(archivo);

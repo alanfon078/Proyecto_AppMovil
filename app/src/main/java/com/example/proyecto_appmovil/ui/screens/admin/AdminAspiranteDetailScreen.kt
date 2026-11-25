@@ -239,7 +239,10 @@ fun AdminAspiranteDetailContent(
                                 enabled = !uiState.isLoading && !uiState.isDownloadingPdf,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(if (uiState.isDownloadingPdf) "Descargando PDF..." else "Ver / Previsualizar PDF")
+                                Text(
+                                    if (uiState.isDownloadingPdf) "Descargando PDF..." else "Ver / Previsualizar PDF",
+                                    color = Color.Black
+                                )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -297,10 +300,13 @@ fun AdminAspiranteDetailContent(
                         if (uiState.aspirante?.estadoInscripcion == EstadoInscripcion.ACEPTADO) {
                             Text("El trámite está aprobado", style = MaterialTheme.typography.bodySmall)
                         } else {
+                            val indicacion = if (uiState.puedeAprobar) {
+                                "El trámite está listo para el dictamen final."
+                            } else {
+                                "Faltan ${uiState.documentosAprobadosFaltantes}. Aprueba todos para habilitar el trámite."
+                            }
                             Text(
-                                "Aprobados: ${uiState.documentosAprobados} de 4 documentos obligatorios. " +
-                                    "Faltan ${uiState.documentosAprobadosFaltantes}. " +
-                                    "Aprueba todos para habilitar el trámite.",
+                                "Aprobados: ${uiState.documentosAprobados} de 4 documentos obligatorios. $indicacion",
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Spacer(modifier = Modifier.height(14.dp))
@@ -360,7 +366,7 @@ fun AdminAspiranteDetailContent(
                     ) { Text("Rechazar documento") }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { documentoARechazar = null }) { Text("Cancelar") }
+                    OutlinedButton(onClick = { documentoARechazar = null }) { Text("Cancelar", color = Color.Black) }
                 }
             )
         }

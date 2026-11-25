@@ -32,7 +32,7 @@ import com.example.proyecto_appmovil.data.local.entity.UsuarioEntity
         CarreraEntity::class,
         PreguntaDudaEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -54,10 +54,10 @@ abstract class AppDatabase : RoomDatabase() {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "itsur_inscripciones.db"
-            ).addMigrations(migration1To2).build().also { instance = it }
+            ).addMigrations(migration1To2, migration2To3).build().also { instance = it }
         }
 
-        private val migration1To2 = object : Migration(1, 2) {
+        internal val migration1To2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE aspirantes_v2 (
@@ -141,6 +141,20 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("INSERT INTO carreras_v2 SELECT idCarrera, nombre, activa FROM carreras")
                 db.execSQL("DROP TABLE carreras")
                 db.execSQL("ALTER TABLE carreras_v2 RENAME TO carreras")
+            }
+        }
+
+        internal val migration2To3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val tieneIdPregunta = db.query("PRAGMA table_info(notificaciones)").use { columnas ->
+                    val nombre = columnas.getColumnIndexOrThrow("name")
+                    generateSequence { if (columnas.moveToNext()) columnas.getString(nombre) else null }
+                        .any { it == "idPregunta" }
+                }
+                // F08 y la primera versión de F09 compartían el número de esquema 2.
+                if (!tieneIdPregunta) {
+                    db.execSQL("ALTER TABLE notificaciones ADD COLUMN idPregunta INTEGER")
+                }
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS preguntas_dudas (
                         idPregunta INTEGER NOT NULL PRIMARY KEY,

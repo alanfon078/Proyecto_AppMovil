@@ -1,5 +1,10 @@
 package com.example.proyecto_appmovil
 
+import com.example.proyecto_appmovil.data.repository.completeSlots
+import com.example.proyecto_appmovil.data.repository.toEntity
+import com.example.proyecto_appmovil.model.EstadoDocumento
+import com.example.proyecto_appmovil.model.TipoDocumento
+
 import com.example.proyecto_appmovil.data.local.entity.*
 import com.example.proyecto_appmovil.data.remote.RetrofitClient
 import com.example.proyecto_appmovil.data.remote.api.InscripcionesApiService
@@ -102,6 +107,9 @@ class DataLayerArchitectureTest {
         assertEquals("curp.pdf", upload.documento.nombreOriginal)
         assertEquals(567L, upload.documento.tamanoBytes)
         assertEquals("en_revision", upload.estadoInscripcion)
+        val slots = listOf(upload.documento.toEntity()).completeSlots().associateBy { it.tipo }
+        assertEquals(EstadoDocumento.SUBIDO, slots[TipoDocumento.CURP]?.estado)
+        assertEquals(EstadoDocumento.PENDIENTE, slots[TipoDocumento.ACTA_NACIMIENTO]?.estado)
 
         val dictamen = gson.fromJson(
             """{"id_revision": 5, "resultado": "aprobado", "documento": $document, "estado_inscripcion": "en_revision"}""",

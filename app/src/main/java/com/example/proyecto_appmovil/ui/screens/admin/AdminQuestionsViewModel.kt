@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
 import com.example.proyecto_appmovil.model.PreguntaDuda
+import com.example.proyecto_appmovil.ui.resultadoSolicitud
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,27 +30,30 @@ class AdminQuestionsViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AdminQuestionsUiState())
     val uiState: StateFlow<AdminQuestionsUiState> = _uiState.asStateFlow()
+    private var carga: Job? = null
 
     init { cargar() }
 
     fun setCategoria(categoria: String?) {
-        _uiState.update { it.copy(categoria = categoria) }
+        _uiState.update { it.copy(categoria = categoria, preguntas = emptyList()) }
         cargar()
     }
 
     fun setEstado(estado: String?) {
-        _uiState.update { it.copy(estado = estado) }
+        _uiState.update { it.copy(estado = estado, preguntas = emptyList()) }
         cargar()
     }
 
     fun cargar() {
+        carga?.cancel()
         val state = _uiState.value
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, mensajeError = null) }
-            try {
-                val preguntas = repository.getPreguntasAdmin(state.categoria, state.estado)
+        _uiState.update { it.copy(isLoading = true, mensajeError = null) }
+        carga = viewModelScope.launch {
+            val resultado = resultadoSolicitud { repository.getPreguntasAdmin(state.categoria, state.estado) }
+            ensureActive()
+            resultado.onSuccess { preguntas ->
                 _uiState.update { it.copy(preguntas = preguntas, isLoading = false) }
-            } catch (ex: Exception) {
+            }.onFailure { ex ->
                 _uiState.update { it.copy(isLoading = false, mensajeError = ex.message) }
             }
         }

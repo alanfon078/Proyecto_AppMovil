@@ -47,8 +47,8 @@ fun AdminQuestionsScreen(
                     )
                 }
             }
-            state.mensajeExito?.let { Text(it, color = Color(0xFF1B5E20), fontWeight = FontWeight.Bold) }
-            state.mensajeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            state.mensajeExito?.let { Text(it, color = Color.Black, fontWeight = FontWeight.Bold) }
+            state.mensajeError?.let { Text(it, color = Color.Black) }
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)

@@ -19,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.EmptyState
@@ -26,6 +29,7 @@ import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.theme.*
 import androidx.compose.ui.platform.LocalContext
 import com.example.proyecto_appmovil.work.NotificacionesWorkManager
+import kotlinx.coroutines.delay
 
 @Composable
 fun NotificationsScreen(
@@ -34,7 +38,18 @@ fun NotificationsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(Unit) { NotificacionesWorkManager.syncNow(context) }
+    LaunchedEffect(lifecycle, uiState.tabSeleccionada) {
+        if (uiState.tabSeleccionada == 1) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    viewModel.actualizarFechas()
+                    delay(5_000)
+                }
+            }
+        }
+    }
 
     NotificationsContent(
         uiState = uiState,

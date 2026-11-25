@@ -29,23 +29,40 @@ class NotificationsViewModel(
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            repository.observarNotificaciones().collect { avisos ->
+                _uiState.update { it.copy(notificaciones = avisos) }
+            }
+        }
+        viewModelScope.launch {
+            repository.observarFechasImportantes().collect { fechas ->
+                _uiState.update { it.copy(fechas = fechas) }
+            }
+        }
         cargarDatos()
     }
 
     fun cargarDatos() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, mensajeError = null) }
-            resultadoSolicitud { repository.getNotificaciones() to repository.getFechasImportantes() }
-                .onSuccess { (notificaciones, fechas) ->
-                    _uiState.update {
-                        it.copy(notificaciones = notificaciones, fechas = fechas, isLoading = false)
+            val resultado = resultadoSolicitud { repository.getNotificaciones() }
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    mensajeError = resultado.exceptionOrNull()?.let { ex ->
+                        ex.message ?: "No se pudieron cargar los avisos"
                     }
-                }.onFailure { ex ->
-                    _uiState.update {
-                        it.copy(isLoading = false, mensajeError = ex.message ?: "No se pudieron cargar los avisos")
-                    }
-                }
+                )
+            }
         }
+    }
+
+    suspend fun actualizarFechas() {
+        resultadoSolicitud { repository.getFechasImportantes() }
+            .onSuccess { _uiState.update { it.copy(mensajeError = null) } }
+            .onFailure { ex ->
+                _uiState.update { it.copy(mensajeError = ex.message ?: "No se pudieron cargar las fechas") }
+            }
     }
 
     fun setTab(index: Int) = _uiState.update { it.copy(tabSeleccionada = index) }
@@ -55,14 +72,7 @@ class NotificationsViewModel(
         viewModelScope.launch {
             resultadoSolicitud { repository.marcarNotificacionLeida(id) }
                 .onSuccess {
-                    _uiState.update { estado ->
-                        estado.copy(
-                            notificaciones = estado.notificaciones.map { notif ->
-                                if (notif.id == id) notif.copy(leida = true) else notif
-                            },
-                            mensajeError = null
-                        )
-                    }
+                    _uiState.update { it.copy(mensajeError = null) }
                 }.onFailure { ex ->
                     _uiState.update { it.copy(mensajeError = ex.message ?: "No se pudo marcar el aviso como leído") }
                 }

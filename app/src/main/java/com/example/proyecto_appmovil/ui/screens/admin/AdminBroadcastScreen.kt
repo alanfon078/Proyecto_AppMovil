@@ -48,9 +48,9 @@ fun AdminBroadcastScreen(
                         label = "Mensaje para todos los aspirantes",
                         singleLine = false
                     )
-                    state.mensajeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    state.mensajeError?.let { Text(it, color = Color.Black) }
                     state.mensajeExito?.let {
-                        Text(it, color = Color(0xFF1B5E20), fontWeight = FontWeight.Bold)
+                        Text(it, color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                     Button(
                         onClick = viewModel::solicitarEnvio,

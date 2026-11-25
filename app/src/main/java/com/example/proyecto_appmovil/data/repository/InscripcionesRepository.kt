@@ -37,11 +37,13 @@ interface InscripcionesRepository {
     suspend fun eliminarDocumento(id: String): Result<Unit>
 
     suspend fun getNotificaciones(): List<Notificacion>
+    fun observarNotificaciones(): Flow<List<Notificacion>>
     suspend fun marcarNotificacionLeida(id: String)
     suspend fun marcarTodasNotificacionesLeidas(): Result<Unit>
     suspend fun eliminarNotificacion(id: Long): Result<Boolean>
 
     suspend fun getFechasImportantes(): List<FechaImportante>
+    fun observarFechasImportantes(): Flow<List<FechaImportante>>
     suspend fun crearFechaImportante(
         titulo: String,
         descripcion: String,
@@ -72,5 +74,5 @@ interface InscripcionesRepository {
     suspend fun getPreguntasAdmin(categoria: String? = null, estado: String? = null): List<PreguntaDuda>
     suspend fun responderPregunta(id: String, respuesta: String): Result<PreguntaDuda>
     suspend fun enviarAvisoGeneral(titulo: String, mensaje: String): Result<Int>
-    suspend fun getNotificacionesNuevas(afterId: Long): List<Notificacion>
+    suspend fun sincronizarNotificaciones(publicar: (Notificacion) -> Boolean)
 }
