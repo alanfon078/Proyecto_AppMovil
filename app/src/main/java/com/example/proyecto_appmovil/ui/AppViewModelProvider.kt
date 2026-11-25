@@ -15,6 +15,9 @@ import com.example.proyecto_appmovil.ui.screens.home.HomeViewModel
 import com.example.proyecto_appmovil.ui.screens.notifications.NotificationsViewModel
 import com.example.proyecto_appmovil.ui.screens.profile.ProfileViewModel
 import com.example.proyecto_appmovil.ui.screens.status.StatusViewModel
+import com.example.proyecto_appmovil.ui.screens.questions.StudentQuestionsViewModel
+import com.example.proyecto_appmovil.ui.screens.admin.AdminQuestionsViewModel
+import com.example.proyecto_appmovil.ui.screens.admin.AdminBroadcastViewModel
 
 /**
  * Proveedor central de ViewModels que inyecta el repositorio
@@ -51,6 +54,15 @@ object AppViewModelProvider {
         }
         initializer {
             AdminAspiranteDetailViewModel(inscripcionesApp().container.inscripcionesRepository)
+        }
+        initializer {
+            StudentQuestionsViewModel(inscripcionesApp().container.inscripcionesRepository)
+        }
+        initializer {
+            AdminQuestionsViewModel(inscripcionesApp().container.inscripcionesRepository)
+        }
+        initializer {
+            AdminBroadcastViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
     }
 }

@@ -10,6 +10,11 @@ import com.example.proyecto_appmovil.model.Documento
 import com.example.proyecto_appmovil.model.EstadoDocumento
 import com.example.proyecto_appmovil.model.EstadoInscripcion
 import com.example.proyecto_appmovil.model.TipoDocumento
+import com.example.proyecto_appmovil.data.remote.dto.PreguntaDto
+import com.example.proyecto_appmovil.data.local.entity.PreguntaDudaEntity
+import com.example.proyecto_appmovil.model.PreguntaDuda
+import com.example.proyecto_appmovil.model.CategoriaPregunta
+import com.example.proyecto_appmovil.model.EstadoPregunta
 
 internal fun AspiranteDto.toEntity() = AspiranteEntity(
     idAspirante = idAspirante,
@@ -93,4 +98,32 @@ private fun DocumentoEntity.toModel(tipo: TipoDocumento) = Documento(
     },
     observaciones = observaciones.orEmpty(),
     version = version
+)
+
+internal fun PreguntaDto.toEntity() = PreguntaDudaEntity(
+    idPregunta = idPregunta,
+    nombreCompleto = nombreCompleto.orEmpty(),
+    folio = folio.orEmpty(),
+    carrera = carrera.orEmpty(),
+    categoria = categoria,
+    pregunta = pregunta,
+    estado = estado,
+    respuesta = respuesta,
+    fechaCreacion = fechaCreacion,
+    fechaRespuesta = fechaRespuesta
+)
+
+internal fun PreguntaDto.toModel() = toEntity().toModel()
+
+internal fun PreguntaDudaEntity.toModel() = PreguntaDuda(
+    id = idPregunta.toString(),
+    nombreCompleto = nombreCompleto,
+    folio = folio,
+    carrera = carrera,
+    categoria = CategoriaPregunta.fromApi(categoria) ?: CategoriaPregunta.FECHAS,
+    pregunta = pregunta,
+    estado = EstadoPregunta.fromApi(estado),
+    respuesta = respuesta,
+    fechaCreacion = fechaCreacion,
+    fechaRespuesta = fechaRespuesta
 )

@@ -21,12 +21,16 @@ import com.example.proyecto_appmovil.data.remote.dto.LoginResponseDto
 import com.example.proyecto_appmovil.data.remote.dto.RefreshTokenRequestDto
 import com.example.proyecto_appmovil.data.remote.dto.RegisterRequestDto
 import com.example.proyecto_appmovil.data.remote.dto.RevisionDto
+import com.example.proyecto_appmovil.data.remote.dto.CrearPreguntaDto
+import com.example.proyecto_appmovil.data.remote.dto.ResponderPreguntaDto
+import com.example.proyecto_appmovil.data.remote.dto.AvisoGeneralDto
 import com.example.proyecto_appmovil.model.Aspirante
 import com.example.proyecto_appmovil.model.Documento
 import com.example.proyecto_appmovil.model.FechaImportante
 import com.example.proyecto_appmovil.model.Notificacion
 import com.example.proyecto_appmovil.model.ResumenAspirante
 import com.example.proyecto_appmovil.model.TipoDocumento
+import com.example.proyecto_appmovil.model.PreguntaDuda
 import com.example.proyecto_appmovil.util.FileHashHelper
 import com.google.gson.JsonParseException
 import com.google.gson.JsonParser
@@ -48,6 +52,7 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.Locale
+import androidx.work.WorkManager
 
 class InscripcionesRepositoryImpl(
     private val context: Context,
@@ -61,6 +66,7 @@ class InscripcionesRepositoryImpl(
     private val notificaciones = database.notificacionDao()
     private val fechas = database.fechaImportanteDao()
     private val catalogos = database.catalogosDao()
+    private val preguntas = database.preguntaDudaDao()
 
     // Serializa las operaciones de caché con el cierre de sesión.
     private val operationMutex = Mutex()
@@ -131,6 +137,8 @@ class InscripcionesRepositoryImpl(
 
     private fun clearLocalSession() {
         session.clearSession()
+        WorkManager.getInstance(context).cancelUniqueWork(com.example.proyecto_appmovil.work.NotificacionesWorkManager.PERIODIC_NAME)
+        WorkManager.getInstance(context).cancelAllWorkByTag(com.example.proyecto_appmovil.work.NotificacionesSyncWorker::class.java.name)
         database.clearAllTables()
         FileHashHelper.docsDirectory(context).deleteRecursively()
         File(context.filesDir, "documentos").deleteRecursively()
@@ -349,6 +357,54 @@ class InscripcionesRepositoryImpl(
     override suspend fun aprobarAspirante(id: String): Result<Aspirante> = request {
         api.aprobarAspirante(parseId(id)).toModel()
     }
+
+    override suspend fun crearPregunta(categoria: String, pregunta: String): Result<PreguntaDuda> = request {
+        val response = api.crearPregunta(CrearPreguntaDto(categoria, pregunta))
+        database.withTransaction { preguntas.insertAll(listOf(response.toEntity())) }
+        response.toModel()
+    }
+
+    override suspend fun getMisPreguntas(): List<PreguntaDuda> = request {
+        val response = api.getMisPreguntas()
+        database.withTransaction { preguntas.insertAll(response.map { it.toEntity() }) }
+        response.map { it.toModel() }
+    }.getOrThrow()
+
+    override suspend fun getPreguntasAdmin(categoria: String?, estado: String?): List<PreguntaDuda> = request {
+        val response = api.getPreguntasAdmin(categoria, estado)
+        database.withTransaction { preguntas.insertAll(response.map { it.toEntity() }) }
+        response.map { it.toModel() }
+    }.getOrThrow()
+
+    override suspend fun responderPregunta(id: String, respuesta: String): Result<PreguntaDuda> = request {
+        val response = api.responderPregunta(parseId(id), ResponderPreguntaDto(respuesta))
+        database.withTransaction { preguntas.insertAll(listOf(response.toEntity())) }
+        response.toModel()
+    }
+
+    override suspend fun enviarAvisoGeneral(titulo: String, mensaje: String): Result<Int> = request {
+        api.enviarAvisoGeneral(AvisoGeneralDto(titulo, mensaje)).notificados
+    }
+
+    override suspend fun getNotificacionesNuevas(afterId: Long): List<Notificacion> = request {
+        val response = api.getNotificacionesNuevas(false, afterId)
+        database.withTransaction {
+            notificaciones.insertAll(response.map {
+                NotificacionEntity(
+                    idNotificacion = it.id,
+                    idRemoto = it.id,
+                    idUsuario = it.idUsuario,
+                    tipo = it.tipo,
+                    titulo = it.titulo,
+                    mensaje = it.mensaje,
+                    leida = it.leida,
+                    fechaEnvio = it.fechaEnvio,
+                    idPregunta = it.idPregunta
+                )
+            })
+        }
+        response.map { Notificacion(it.id.toString(), it.titulo, it.mensaje, it.fechaEnvio, it.leida) }
+    }.getOrThrow()
 
     private fun parseId(id: String): Long =
         id.toLongOrNull()?.takeIf { it > 0 } ?: throw IllegalArgumentException("Identificador inválido.")

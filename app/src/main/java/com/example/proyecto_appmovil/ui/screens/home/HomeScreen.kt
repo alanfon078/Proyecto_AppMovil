@@ -21,6 +21,12 @@ import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.components.OptionCard
 import com.example.proyecto_appmovil.ui.components.StatusChip
 import com.example.proyecto_appmovil.ui.theme.*
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.proyecto_appmovil.work.NotificacionesWorkManager
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun HomeScreen(
@@ -28,6 +34,7 @@ fun HomeScreen(
     onNavigateToStatus: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToQuestions: () -> Unit,
     onLogout: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -36,6 +43,19 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.cargarDatos()
     }
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        NotificacionesWorkManager.schedulePeriodic(context)
+        NotificacionesWorkManager.syncNow(context)
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {}
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     HomeContent(
         uiState = uiState,
@@ -43,6 +63,7 @@ fun HomeScreen(
         onNavigateToStatus = onNavigateToStatus,
         onNavigateToProfile = onNavigateToProfile,
         onNavigateToNotifications = onNavigateToNotifications,
+        onNavigateToQuestions = onNavigateToQuestions,
         onLogout = onLogout
     )
 }
@@ -54,6 +75,7 @@ fun HomeContent(
     onNavigateToStatus: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToQuestions: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -180,6 +202,16 @@ fun HomeContent(
                 onClick = onNavigateToNotifications
             )
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OptionCard(
+                titulo = "Preguntas y Dudas",
+                descripcion = "Consulta dudas sobre Fechas y Documentos",
+                icono = Icons.Default.QuestionAnswer,
+                badgeCount = uiState.notificacionesNoLeidasCount,
+                onClick = onNavigateToQuestions
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -195,6 +227,7 @@ fun HomeScreenPreview() {
             onNavigateToStatus = {},
             onNavigateToProfile = {},
             onNavigateToNotifications = {},
+            onNavigateToQuestions = {},
             onLogout = {}
         )
     }

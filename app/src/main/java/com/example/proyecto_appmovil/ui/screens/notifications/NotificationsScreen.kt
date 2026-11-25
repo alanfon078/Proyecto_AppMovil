@@ -24,6 +24,8 @@ import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.EmptyState
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.theme.*
+import androidx.compose.ui.platform.LocalContext
+import com.example.proyecto_appmovil.work.NotificacionesWorkManager
 
 @Composable
 fun NotificationsScreen(
@@ -31,6 +33,8 @@ fun NotificationsScreen(
     viewModel: NotificationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    LaunchedEffect(Unit) { NotificacionesWorkManager.syncNow(context) }
 
     NotificationsContent(
         uiState = uiState,

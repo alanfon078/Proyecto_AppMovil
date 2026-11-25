@@ -56,6 +56,16 @@ class SessionManager(context: Context) {
     fun getUserRole(): String? = sharedPreferences.getString(KEY_USER_ROLE, null)
 
     @Synchronized
+    fun getUltimoIdNotificado(): Long = sharedPreferences.getLong(KEY_ULTIMO_ID_NOTIFICADO, 0L)
+
+    @Synchronized
+    fun saveUltimoIdNotificado(id: Long) {
+        if (id > getUltimoIdNotificado()) {
+            sharedPreferences.edit().putLong(KEY_ULTIMO_ID_NOTIFICADO, id).apply()
+        }
+    }
+
+    @Synchronized
     fun clearSession() {
         sharedPreferences.edit().clear().apply()
     }
@@ -69,5 +79,6 @@ class SessionManager(context: Context) {
         const val KEY_ASPIRANTE_ID = "key_aspirante_id"
         const val KEY_USER_ROLE = "key_user_role"
         const val KEY_USER_EMAIL = "key_user_email"
+        const val KEY_ULTIMO_ID_NOTIFICADO = "key_ultimo_id_notificado"
     }
 }
