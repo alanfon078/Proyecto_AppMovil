@@ -14,20 +14,29 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 
 data class AdminAspiranteDetailUiState(
     val aspirante: Aspirante? = null,
     val documentos: List<Documento> = emptyList(),
     val observacionesInput: String = "",
     val isLoading: Boolean = false,
+    val isDownloadingPdf: Boolean = false,
+    val pdfPreviewFile: File? = null,
     val mensajeExito: String? = null,
     val mensajeError: String? = null
 ) {
+    val documentosAprobados: Int
+        get() = TipoDocumento.entries.filter(TipoDocumento::obligatorio).count { tipo ->
+            documentos.any { it.tipo == tipo && it.estado == EstadoDocumento.VALIDADO }
+        }
+
+    val documentosAprobadosFaltantes: Int
+        get() = TipoDocumento.entries.count(TipoDocumento::obligatorio) - documentosAprobados
+
     val puedeAprobar: Boolean
         get() = aspirante != null && aspirante.estadoInscripcion != EstadoInscripcion.ACEPTADO &&
-            TipoDocumento.entries.filter(TipoDocumento::obligatorio).all { tipo ->
-                documentos.any { it.tipo == tipo && it.estado == EstadoDocumento.VALIDADO }
-            }
+            documentosAprobados == TipoDocumento.entries.count(TipoDocumento::obligatorio)
 }
 
 class AdminAspiranteDetailViewModel(
@@ -94,6 +103,25 @@ class AdminAspiranteDetailViewModel(
                     }
                 }
         }
+    }
+
+    fun descargarPdf(documentoId: String, nombreArchivo: String?) {
+        if (_uiState.value.isDownloadingPdf) return
+        _uiState.update { it.copy(isDownloadingPdf = true, mensajeError = null) }
+        viewModelScope.launch {
+            repository.descargarDocumentoParaPrevisualizacion(documentoId, nombreArchivo)
+                .onSuccess { file ->
+                    _uiState.update { it.copy(isDownloadingPdf = false, pdfPreviewFile = file) }
+                }.onFailure { ex ->
+                    _uiState.update {
+                        it.copy(isDownloadingPdf = false, mensajeError = ex.message ?: "No se pudo descargar el PDF")
+                    }
+                }
+        }
+    }
+
+    fun cerrarPdfPreview() {
+        _uiState.update { it.copy(pdfPreviewFile = null) }
     }
 
     private suspend fun actualizarDetalle(aspiranteId: String) {

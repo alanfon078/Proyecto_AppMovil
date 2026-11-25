@@ -1,310 +1,235 @@
 package com.example.proyecto_appmovil.ui.screens.admin
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.model.FechaImportante
+import com.example.proyecto_appmovil.model.TipoFechaImportante
+import com.example.proyecto_appmovil.navigation.Screen
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.EmptyState
 import com.example.proyecto_appmovil.ui.components.ErrorBanner
-import com.example.proyecto_appmovil.ui.components.ItsurTextField
-import com.example.proyecto_appmovil.ui.components.ItsurTopBar
-import com.example.proyecto_appmovil.ui.theme.*
+import com.example.proyecto_appmovil.ui.components.itsurTextFieldColors
+import com.example.proyecto_appmovil.ui.theme.ItsurCiruela
+import com.example.proyecto_appmovil.ui.theme.ItsurOnSurface
+import com.example.proyecto_appmovil.ui.theme.ItsurOnSurfaceVariant
+import com.example.proyecto_appmovil.ui.theme.ItsurVinoOscuro
+import java.time.Instant
+import java.time.ZoneOffset
 
 @Composable
 fun AdminFechasScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateToRoute: (String) -> Unit,
+    onLogout: () -> Unit,
     viewModel: AdminFechasViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
     AdminFechasContent(
         uiState = uiState,
-        onNavigateBack = onNavigateBack,
+        onNavigateToRoute = onNavigateToRoute,
+        onLogout = onLogout,
         onAbrirDialogo = viewModel::abrirDialogoNuevaFecha,
+        onAbrirEditar = viewModel::abrirDialogoEditar,
+        onEliminar = viewModel::eliminarFecha,
         onCerrarDialogo = viewModel::cerrarDialogoNuevaFecha,
         onTituloChange = viewModel::onTituloChange,
         onDescripcionChange = viewModel::onDescripcionChange,
         onFechaLimiteChange = viewModel::onFechaLimiteChange,
-        onGuardar = viewModel::guardarNuevaFecha
+        onTipoChange = viewModel::onTipoChange,
+        onGuardar = viewModel::guardarFecha
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminFechasContent(
     uiState: AdminFechasUiState,
-    onNavigateBack: () -> Unit,
+    onNavigateToRoute: (String) -> Unit,
+    onLogout: () -> Unit,
     onAbrirDialogo: () -> Unit,
+    onAbrirEditar: (FechaImportante) -> Unit,
+    onEliminar: (String) -> Unit,
     onCerrarDialogo: () -> Unit,
     onTituloChange: (String) -> Unit,
     onDescripcionChange: (String) -> Unit,
     onFechaLimiteChange: (String) -> Unit,
+    onTipoChange: (TipoFechaImportante) -> Unit,
     onGuardar: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            ItsurTopBar(
-                title = "Calendario y Fechas Límite",
-                onNavigateBack = onNavigateBack
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAbrirDialogo,
-                containerColor = ItsurCiruela,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Programar Fecha")
-            }
-        }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    AdminDrawerScaffold(
+        title = "Fechas Límite",
+        currentRoute = Screen.AdminFechas.route,
+        onNavigateToRoute = onNavigateToRoute,
+        onLogout = onLogout
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ItsurOffWhite)
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Banner explicativo
-            Card(
-                colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        tint = ItsurVinoOscuro,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Control de Convocatoria ITSUR",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = ItsurVinoOscuro
-                        )
-                        Text(
-                            text = "Gestiona las fechas límite oficiales visibles en la app para todos los aspirantes.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ItsurVinoOscuro
-                        )
-                    }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Fechas Programadas (${uiState.fechas.size})",
+                    modifier = Modifier.weight(1f),
+                    color = ItsurVinoOscuro,
+                    fontWeight = FontWeight.Bold
+                )
+                Button(onClick = onAbrirDialogo, colors = ButtonDefaults.buttonColors(containerColor = ItsurCiruela)) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("+ Nueva Fecha")
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (uiState.isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-            if (!uiState.showDialogNuevaFecha) {
-                uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
-            }
-
-            if (uiState.mensajeExito != null) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = StatusAprobadoBg),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = uiState.mensajeExito,
-                        color = ItsurOnSurface,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(14.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            Text(
-                text = "Fechas Programadas (${uiState.fechas.size})",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = ItsurVinoOscuro
-            )
+            if (uiState.isLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
+            uiState.mensajeExito?.let { Text(it, color = ItsurOnSurface, modifier = Modifier.padding(vertical = 8.dp)) }
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            if (uiState.fechas.isEmpty() && !uiState.isLoading && uiState.mensajeError == null) {
+            if (uiState.fechas.isEmpty() && !uiState.isLoading) {
                 EmptyState(mensaje = "No hay fechas límite registradas")
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(uiState.fechas, key = { it.id }) { fecha ->
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             shape = RoundedCornerShape(14.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .background(ItsurRosaPastel, RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarMonth,
-                                        contentDescription = null,
-                                        tint = ItsurVinoOscuro
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(14.dp))
-
+                            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = fecha.titulo,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = ItsurVinoOscuro
-                                    )
-                                    Text(
-                                        text = fecha.descripcion,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = ItsurOnSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Límite: ${fecha.fechaLimite}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = ItsurOnSurface
-                                    )
+                                    Text(fecha.titulo, color = ItsurVinoOscuro, fontWeight = FontWeight.Bold)
+                                    Text(fecha.descripcion, color = ItsurOnSurfaceVariant)
+                                    Text("Tipo: ${TipoFechaImportante.fromApi(fecha.tipo).etiqueta}", color = ItsurOnSurface)
+                                    Text("Límite: ${fecha.fechaLimite}", color = ItsurOnSurface)
+                                    Text("${fecha.diasRestantes} días restantes", color = ItsurOnSurfaceVariant)
                                 }
-
-                                Surface(
-                                    color = if (fecha.diasRestantes <= 10) StatusPendienteBg else ItsurRosaSuave,
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text(
-                                        text = "${fecha.diasRestantes} días",
-                                        color = ItsurOnSurface,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
+                                IconButton(onClick = { onAbrirEditar(fecha) }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                                }
+                                IconButton(onClick = { onEliminar(fecha.id) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                                 }
                             }
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedButton(
-                onClick = onNavigateBack,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Regresar al Panel Escolar", fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-        }
-
-        // Diálogo para programar nueva fecha límite
-        if (uiState.showDialogNuevaFecha) {
-            AlertDialog(
-                onDismissRequest = onCerrarDialogo,
-                title = {
-                    Text(
-                        text = "Programar Fecha Límite",
-                        fontWeight = FontWeight.Bold,
-                        color = ItsurVinoOscuro
-                    )
-                },
-                text = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        ItsurTextField(
-                            value = uiState.nuevoTitulo,
-                            onValueChange = onTituloChange,
-                            label = "Título del evento o entrega"
-                        )
-                        ItsurTextField(
-                            value = uiState.nuevaDescripcion,
-                            onValueChange = onDescripcionChange,
-                            label = "Descripción"
-                        )
-                        ItsurTextField(
-                            value = uiState.nuevaFechaLimite,
-                            onValueChange = onFechaLimiteChange,
-                            label = "Fecha Límite (AAAA-MM-DD)"
-                        )
-                        uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = onGuardar,
-                        enabled = !uiState.isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = ItsurCiruela, disabledContentColor = Color.Black)
-                    ) {
-                        Text("Guardar Fecha")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = onCerrarDialogo, enabled = !uiState.isLoading) {
-                        Text("Cancelar", color = ItsurOnSurface)
-                    }
-                }
-            )
         }
     }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun AdminFechasPreview() {
-    AppTheme {
-        AdminFechasContent(
-            uiState = AdminFechasUiState(),
-            onNavigateBack = {},
-            onAbrirDialogo = {},
-            onCerrarDialogo = {},
-            onTituloChange = {},
-            onDescripcionChange = {},
-            onFechaLimiteChange = {},
-            onGuardar = {}
+    if (uiState.showDialogNuevaFecha) {
+        AlertDialog(
+            onDismissRequest = onCerrarDialogo,
+            title = { Text(if (uiState.fechaEnEdicionId == null) "Nueva fecha importante" else "Editar fecha importante") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = uiState.nuevoTitulo,
+                        onValueChange = onTituloChange,
+                        label = { Text("Título") },
+                        colors = itsurTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = uiState.nuevaDescripcion,
+                        onValueChange = onDescripcionChange,
+                        label = { Text("Descripción") },
+                        colors = itsurTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    TipoFechaImportante.entries.forEach { tipo ->
+                        OutlinedButton(
+                            onClick = { onTipoChange(tipo) },
+                            colors = if (uiState.nuevoTipo == tipo)
+                                ButtonDefaults.outlinedButtonColors(containerColor = ItsurCiruela.copy(alpha = 0.12f))
+                            else ButtonDefaults.outlinedButtonColors(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(tipo.etiqueta, color = ItsurOnSurface) }
+                    }
+                    OutlinedButton(
+                        onClick = { showDatePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (uiState.nuevaFechaLimite.isBlank()) "Seleccionar fecha" else uiState.nuevaFechaLimite)
+                    }
+                    uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
+                }
+            },
+            confirmButton = {
+                Button(onClick = onGuardar, enabled = !uiState.isLoading) { Text("Guardar") }
+            },
+            dismissButton = {
+                TextButton(onClick = onCerrarDialogo) { Text("Cancelar") }
+            }
         )
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val fecha = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
+                        onFechaLimiteChange(fecha)
+                    }
+                    showDatePicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 }

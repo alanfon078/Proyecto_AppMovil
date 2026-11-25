@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -36,13 +37,14 @@ import kotlinx.coroutines.launch
 
 /**
  * Barra superior institucional ITSUR con color ciruela/vino,
- * ícono de regreso opcional y botón de cerrar sesión.
+ * ícono de regreso o menú lateral opcional y botón de cerrar sesión.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItsurTopBar(
     title: String,
     onNavigateBack: (() -> Unit)? = null,
+    onOpenDrawer: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null
 ) {
     TopAppBar(
@@ -55,13 +57,24 @@ fun ItsurTopBar(
             )
         },
         navigationIcon = {
-            if (onNavigateBack != null) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Regresar",
-                        tint = Color.White
-                    )
+            when {
+                onNavigateBack != null -> {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = Color.White
+                        )
+                    }
+                }
+                onOpenDrawer != null -> {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Abrir menú",
+                            tint = Color.White
+                        )
+                    }
                 }
             }
         },

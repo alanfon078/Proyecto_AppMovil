@@ -134,6 +134,7 @@ class InscripcionesRepositoryImpl(
         database.clearAllTables()
         FileHashHelper.docsDirectory(context).deleteRecursively()
         File(context.filesDir, "documentos").deleteRecursively()
+        File(context.cacheDir, "preview_docs").deleteRecursively()
     }
 
     override suspend fun getAspiranteActual(): Aspirante = request {
@@ -246,9 +247,31 @@ class InscripcionesRepositoryImpl(
     }.getOrThrow()
 
     override suspend fun crearFechaImportante(
-        titulo: String, descripcion: String, fechaLimite: String
+        titulo: String,
+        descripcion: String,
+        tipo: String,
+        fechaLimite: String
     ): Result<Unit> = request {
-        api.crearFechaImportante(CrearFechaImportanteDto(titulo, descripcion, fechaLimite)).requireSuccess()
+        api.crearFechaImportante(CrearFechaImportanteDto(titulo, descripcion, tipo, fechaLimite))
+        Unit
+    }
+
+    override suspend fun actualizarFechaImportante(
+        id: String,
+        titulo: String,
+        descripcion: String,
+        tipo: String,
+        fechaLimite: String
+    ): Result<Unit> = request {
+        api.actualizarFechaImportante(
+            parseId(id),
+            CrearFechaImportanteDto(titulo, descripcion, tipo, fechaLimite)
+        )
+        Unit
+    }
+
+    override suspend fun eliminarFechaImportante(id: String): Result<Unit> = request {
+        api.eliminarFechaImportante(parseId(id)).requireSuccess()
     }
 
     override fun getCarrerasFlow(): Flow<List<CarreraEntity>> = catalogos.getCarrerasFlow()
@@ -273,6 +296,45 @@ class InscripcionesRepositoryImpl(
     override suspend fun getDocumentosAspirante(id: String): List<Documento> = request {
         api.getDocumentosAspirante(parseId(id)).map { it.toEntity() }.completeSlots()
     }.getOrThrow()
+
+    override suspend fun descargarDocumentoParaPrevisualizacion(
+        documentoId: String,
+        nombreArchivo: String?
+    ): Result<File> = request {
+        val remoteId = parseId(documentoId)
+        val response = api.descargarArchivoDocumento(remoteId)
+        if (!response.isSuccessful) throw HttpException(response)
+        val body = response.body() ?: throw IllegalStateException("El servidor devolvió un archivo vacío.")
+
+        val previewDir = File(context.cacheDir, "preview_docs").apply {
+            if (!isDirectory && !mkdirs()) {
+                throw IllegalStateException("No se pudo preparar la carpeta temporal para previsualizar el PDF.")
+            }
+        }
+        val safeName = nombreArchivo
+            ?.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { if (it.endsWith(".pdf", ignoreCase = true)) it else "$it.pdf" }
+            ?: "documento_$remoteId.pdf"
+        val targetFile = File(previewDir, "${remoteId}_$safeName")
+
+        body.byteStream().use { input ->
+            targetFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        if (targetFile.length() < 5L) {
+            targetFile.delete()
+            throw IllegalStateException("El archivo PDF descargado no es válido o está vacío.")
+        }
+        val header = ByteArray(5)
+        targetFile.inputStream().use { it.read(header) }
+        if (!header.contentEquals("%PDF-".toByteArray(Charsets.US_ASCII))) {
+            targetFile.delete()
+            throw IllegalStateException("El archivo descargado no tiene un formato PDF válido.")
+        }
+        targetFile
+    }
 
     override suspend fun revisarDocumento(
         documentoId: String, aprobado: Boolean, observaciones: String

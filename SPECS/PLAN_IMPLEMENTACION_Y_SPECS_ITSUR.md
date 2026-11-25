@@ -208,7 +208,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 #### Tasks de `F08`
 
-- [ ] **F08-01 — Navigation Drawer exclusivo para Administrador y retiro de Logout de esquina superior derecha (Req 8, Req 16)**
+- [x] **F08-01 — Navigation Drawer exclusivo para Administrador y retiro de Logout de esquina superior derecha (Req 8, Req 16)**
   - Crear componente/contenedor administrativo con `ModalNavigationDrawer` y `ModalDrawerSheet` exclusivo para el rol `escolar` (manteniendo sin Drawer al Alumno).
   - Actualizar `ItsurTopBar` para aceptar un parámetro opcional `onOpenDrawer: (() -> Unit)? = null` que renderice el ícono hamburguesa (`Icons.Default.Menu`) a la izquierda y **no mostrar** `onLogout` en la esquina superior derecha de las pantallas administrativas.
   - Poblar el `ModalDrawerSheet` con cabecera institucional ITSUR (logo + rol Control Escolar) y 5 destinos grandes y claros:
@@ -219,17 +219,17 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
     5. `Cerrar Sesión` (ejecuta `logout()` limpiando tokens y Room)
   - Retirar el botón pequeño `TextButton("Fechas Límite")` de la fila de encabezado en `AdminHomeScreen.kt`.
 
-- [ ] **F08-02 — Eliminar botón y zona de Revisión Rápida en Panel de Control Escolar (Req 7)**
+- [x] **F08-02 — Eliminar botón y zona de Revisión Rápida en Panel de Control Escolar (Req 7)**
   - Eliminar el botón `"Revisión Rápida"` de las tarjetas de aspirante en `AdminHomeScreen.kt`, dejando únicamente `"Ver Expediente"` a ancho completo (o acción clara de apertura del expediente).
   - Eliminar el `AlertDialog` de revisión rápida en `AdminHomeScreen.kt`.
   - Limpiar de `AdminHomeUiState` y `AdminHomeViewModel.kt` las propiedades/métodos `aspiranteSeleccionadoParaRevision`, `observacionesInput`, `abrirDialogoRevision()`, `cerrarDialogoRevision()`, `onObservacionesChange()` y `resolverRevision()` (que además tenía `"doc_1"` hardcodeado).
 
-- [ ] **F08-03 — Filtrado interactivo de alumnos mediante contadores de estado en Panel Escolar (Req 10)**
+- [x] **F08-03 — Filtrado interactivo de alumnos mediante contadores de estado en Panel Escolar (Req 10)**
   - Mantener las tarjetas contadoras de `AdminHomeScreen.kt` (`Total`, `En Revisión`, `Aprobados`) haciéndolas clickeables con borde/resaltado activo cuando el filtro esté seleccionado, y añadir `En Captura` (`PENDIENTE` / `en_captura`) y `Con Observaciones` (`CON_OBSERVACIONES` / `con_observaciones`) en `LazyRow` o grid compacto de 2 filas para cubrir los 4 estados reales activos + `Total`.
   - Agregar `estadoFiltroSeleccionado: EstadoInscripcion? = null` en `AdminHomeUiState` y `onFiltroEstadoChange(estado: EstadoInscripcion?)` en `AdminHomeViewModel.kt`.
   - Combinar el filtro de estado seleccionado con la búsqueda por texto (**nombre, folio y CURP**) en tiempo real, recargar la lista al volver del expediente (`LaunchedEffect(Unit) { viewModel.cargarAspirantes() }`) y sincronizar con `GET /api/v1/admin/aspirantes?estado=...&q=...` y pull-to-refresh.
 
-- [ ] **F08-04 — Previsualización y visualización de documentos cargados por alumno en Expediente (Req 4, Req 18)**
+- [x] **F08-04 — Previsualización y visualización de documentos cargados por alumno en Expediente (Req 4, Req 18)**
   - **Backend:**
     - Implementar `GET /api/v1/admin/aspirantes/:id/documentos` consultando MySQL para retornar los 4 tipos de documento del `id_aspirante` solicitado (indicando cuál ya fue subido, su `idDocumento`, nombre, tamaño, versión, estado y observaciones).
     - Implementar `GET /api/v1/admin/documentos/:id/archivo` protegido con JWT + rol `escolar`, validando existencia del archivo en `/uploads` (previniendo path traversal) y enviándolo con `Content-Type: application/pdf`.
@@ -240,7 +240,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
     - Añadir en cada tarjeta de documento **cargado** (`nombreArchivo != null`) en `AdminAspiranteDetailScreen.kt` el botón `"Ver / Previsualizar PDF"` y deshabilitar/ocultar los botones de previsualización, aprobación y rechazo cuando el archivo aún esté pendiente de subir.
     - Crear visor PDF integrado (`PdfViewerDialog` o `PdfViewerScreen`) utilizando `android.graphics.pdf.PdfRenderer` con: renderizado de páginas en alta nitidez, botones `Anterior` / `Siguiente`, indicador `Página X de Y`, soporte de zoom (`detectTransformGestures` + controles `+/-`), estado de carga/error y botón secundario `"Abrir en app externa"` usando `FileProvider` (configurando `provider` en `AndroidManifest.xml` y `res/xml/file_paths.xml`).
 
-- [ ] **F08-05 — Bloquear aprobación del trámite hasta aprobar los 4 documentos obligatorios (Req 5, Req 18)**
+- [x] **F08-05 — Bloquear aprobación del trámite hasta aprobar los 4 documentos obligatorios (Req 5, Req 18)**
   - **Android (`AdminAspiranteDetailScreen.kt` / `AdminAspiranteDetailViewModel.kt`):**
     - Calcular propiedad derivada `todosDocumentosAprobados`: `true` únicamente cuando los **4 documentos obligatorios** (`ACTA_NACIMIENTO`, `CURP`, `CERTIFICADO_BACHILLERATO`, `COMPROBANTE_DOMICILIO`) estén cargados y en estado `EstadoDocumento.VALIDADO`.
     - Deshabilitar el botón `"Aprobar Trámite"` cuando `!todosDocumentosAprobados` y mostrar un aviso claro indicando cuántos documentos aprobados faltan (ej. `"Aprobados: 2 de 4 documentos obligatorios. Aprueba todos para habilitar el trámite."`).
@@ -248,11 +248,11 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
   - **Backend (`server/src/app.js`):**
     - Implementar `POST /api/v1/admin/aspirantes/:id/aprobar` (protegido rol `escolar`) que verifique en MySQL que existan 4 documentos vigentes aprobados para los 4 `tipos_documento` con `obligatorio = TRUE`. Si falta cualquiera, responder `409 Conflict` (`DOCS_INCOMPLETE`); si están completos, actualizar `aspirantes.estado_inscripcion = 'documentacion_aprobada'` y generar notificación al aspirante.
 
-- [ ] **F08-06 — Eliminar botón de Rechazar Trámite en Expediente del Aspirante (Req 6)**
+- [x] **F08-06 — Eliminar botón de Rechazar Trámite en Expediente del Aspirante (Req 6)**
   - Retirar el botón `"Rechazar Trámite"` de la sección `"Dictamen Final de Inscripción"` en `AdminAspiranteDetailScreen.kt`, dejando únicamente el botón `"Aprobar Trámite"` a ancho completo (condicionado por `F08-05`).
   - Eliminar la ruta lógica de rechazo global de expediente en `AdminAspiranteDetailViewModel.kt`, y trasladar la captura de observaciones de rechazo individual a un `AlertDialog` específico al pulsar `"Rechazar"` sobre un documento cargado (exigiendo motivo obligatorio y enviando `POST /api/v1/admin/documentos/{id}/revision`), lo cual coloca el expediente en `con_observaciones` para que el alumno subsane el archivo específico.
 
-- [ ] **F08-07 — CRUD completo de Fechas Importantes y reubicación del botón Nueva Fecha (Req 9, Req 18)**
+- [x] **F08-07 — CRUD completo de Fechas Importantes y reubicación del botón Nueva Fecha (Req 9, Req 18)**
   - **Backend (`server/src/app.js`):**
     - Persistir `fechas_importantes` en MySQL con los endpoints:
       - `GET /api/v1/fechas-importantes` (ordenadas cronológicamente, calculando `diasRestantes` en servidor o desde ISO `YYYY-MM-DD HH:mm:ss`).

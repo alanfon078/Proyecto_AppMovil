@@ -19,7 +19,10 @@ import java.util.concurrent.TimeUnit
 class AuthInterceptor(private val tokenProvider: () -> String?) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
-        val request = original.newBuilder().header("Accept", "application/json")
+        val request = original.newBuilder()
+        if (original.header("Accept") == null) {
+            request.header("Accept", "application/json")
+        }
         val path = original.url.encodedPath
         if (publicPaths.none(path::endsWith)) {
             tokenProvider()?.let { request.header("Authorization", "Bearer $it") }

@@ -87,7 +87,8 @@ private fun DocumentoEntity.toModel(tipo: TipoDocumento) = Documento(
     estado = when (estado.lowercase()) {
         "aprobado", "validado" -> EstadoDocumento.VALIDADO
         "requiere_correccion", "rechazado", "presencial" -> EstadoDocumento.RECHAZADO
-        "pendiente", "subido" -> EstadoDocumento.SUBIDO
+        "pendiente" -> EstadoDocumento.PENDIENTE
+        "subido" -> EstadoDocumento.SUBIDO
         else -> error("Estado de documento desconocido: $estado")
     },
     observaciones = observaciones.orEmpty(),

@@ -22,5 +22,6 @@ data class FechaImportanteDto(
 data class CrearFechaImportanteDto(
     @SerializedName("titulo") val titulo: String,
     @SerializedName("descripcion") val descripcion: String,
+    @SerializedName("tipo") val tipo: String = "limite_entrega",
     @SerializedName("fecha_limite") val fechaLimite: String
 )

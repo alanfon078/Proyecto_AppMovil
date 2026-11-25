@@ -1,4 +1,5 @@
 const { createHash, randomUUID } = require('node:crypto');
+const fsSync = require('node:fs');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const multer = require('multer');
@@ -264,7 +265,45 @@ const aprobarTramite = route(async (req, res) => {
   res.json(result);
 });
 
+const descargarArchivoDocumento = route(async (req, res) => {
+  const id = idSchema.parse(req.params.id);
+  const [rows] = await pool.execute(
+    'SELECT id_documento, nombre_original, ruta_archivo, tipo_mime FROM documentos WHERE id_documento = ? AND vigente = TRUE',
+    [id]
+  );
+  const doc = requireFound(rows[0], 'DOCUMENT_NOT_FOUND', 'Documento no encontrado');
+  const archivo = path.resolve(uploadDir, doc.ruta_archivo);
+  if (path.dirname(archivo) !== uploadDir) {
+    throw new HttpError(404, 'FILE_NOT_FOUND', 'Archivo no disponible');
+  }
+  let stat;
+  try {
+    stat = await fs.stat(archivo);
+  } catch {
+    throw new HttpError(404, 'FILE_NOT_FOUND', 'El archivo PDF no se encuentra en el servidor');
+  }
+  if (!stat.isFile()) {
+    throw new HttpError(404, 'FILE_NOT_FOUND', 'El archivo PDF no se encuentra en el servidor');
+  }
+  const nombreSeguro = (doc.nombre_original || `documento_${id}.pdf`).replace(/["\r\n\\]/g, '_');
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Length': String(stat.size),
+    'Content-Disposition': `inline; filename="${nombreSeguro}"`,
+    'Cache-Control': 'private, no-store'
+  });
+  const stream = fsSync.createReadStream(archivo);
+  stream.on('error', err => {
+    if (!res.headersSent) {
+      res.status(500).json({ error: { code: 'FILE_READ_ERROR', message: 'No se pudo leer el archivo PDF' } });
+    } else {
+      res.destroy(err);
+    }
+  });
+  stream.pipe(res);
+});
+
 module.exports = {
   initUploads, getConteoDocumentos, recibirArchivo, getMisDocumentos, getDocumentosAspirante,
-  subirDocumento, eliminarDocumento, revisarDocumento, aprobarTramite
+  subirDocumento, eliminarDocumento, revisarDocumento, aprobarTramite, descargarArchivoDocumento
 };

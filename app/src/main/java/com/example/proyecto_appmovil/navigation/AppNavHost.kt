@@ -16,8 +16,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.proyecto_appmovil.InscripcionesApp
 import com.example.proyecto_appmovil.ui.screens.admin.AdminAspiranteDetailScreen
+import com.example.proyecto_appmovil.ui.screens.admin.AdminBroadcastPlaceholderScreen
 import com.example.proyecto_appmovil.ui.screens.admin.AdminFechasScreen
 import com.example.proyecto_appmovil.ui.screens.admin.AdminHomeScreen
+import com.example.proyecto_appmovil.ui.screens.admin.AdminQuestionsPlaceholderScreen
 import com.example.proyecto_appmovil.ui.screens.auth.LoginScreen
 import com.example.proyecto_appmovil.ui.screens.auth.RegisterScreen
 import com.example.proyecto_appmovil.ui.screens.documents.DocumentsScreen
@@ -125,9 +127,17 @@ fun AppNavHost(
         }
 
         // ── MÓDULO ADMIN (CONTROL ESCOLAR) ────────────────────────────────
+        val navigateToAdminRoute: (String) -> Unit = { route ->
+            navController.navigate(route) {
+                popUpTo(Screen.AdminHome.route) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+
         composable(Screen.AdminHome.route) {
             AdminHomeScreen(
-                onNavigateToFechas = { navController.navigate(Screen.AdminFechas.route) },
+                onNavigateToRoute = navigateToAdminRoute,
                 onNavigateToAspiranteDetail = { aspiranteId ->
                     navController.navigate(Screen.AdminAspiranteDetail.createRoute(aspiranteId))
                 },
@@ -137,7 +147,22 @@ fun AppNavHost(
 
         composable(Screen.AdminFechas.route) {
             AdminFechasScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateToRoute = navigateToAdminRoute,
+                onLogout = logout
+            )
+        }
+
+        composable(Screen.AdminQuestions.route) {
+            AdminQuestionsPlaceholderScreen(
+                onNavigateToRoute = navigateToAdminRoute,
+                onLogout = logout
+            )
+        }
+
+        composable(Screen.AdminBroadcast.route) {
+            AdminBroadcastPlaceholderScreen(
+                onNavigateToRoute = navigateToAdminRoute,
+                onLogout = logout
             )
         }
 
