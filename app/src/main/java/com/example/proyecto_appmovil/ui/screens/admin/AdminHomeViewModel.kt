@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
 import com.example.proyecto_appmovil.model.Aspirante
-import com.example.proyecto_appmovil.model.Documento
-import com.example.proyecto_appmovil.model.EstadoDocumento
+import com.example.proyecto_appmovil.model.EstadoInscripcion
 import com.example.proyecto_appmovil.ui.resultadoSolicitud
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,12 +15,13 @@ import kotlinx.coroutines.launch
 data class AdminHomeUiState(
     val aspirantes: List<Aspirante> = emptyList(),
     val filtroBusqueda: String = "",
-    val aspiranteSeleccionadoParaRevision: Aspirante? = null,
-    val documentosParaRevision: List<Documento> = emptyList(),
-    val documentoSeleccionado: Documento? = null,
-    val observacionesInput: String = "",
+    val estadoFiltroSeleccionado: EstadoInscripcion? = null,
+    val totalAspirantes: Int = 0,
+    val inRevision: Int = 0,
+    val aprobados: Int = 0,
+    val enCaptura: Int = 0,
+    val conObservaciones: Int = 0,
     val isLoading: Boolean = false,
-    val cargandoDocumentos: Boolean = false,
     val mensajeExito: String? = null,
     val mensajeError: String? = null
 )
@@ -41,84 +41,48 @@ class AdminHomeViewModel(
         }
     }
 
-    fun onBusquedaChange(query: String) = _uiState.update { it.copy(filtroBusqueda = query) }
-
-    fun abrirDialogoRevision(aspirante: Aspirante) {
-        val estado = _uiState.value
-        if (estado.isLoading || estado.cargandoDocumentos) return
-        _uiState.update {
-            it.copy(
-                aspiranteSeleccionadoParaRevision = aspirante,
-                documentosParaRevision = emptyList(),
-                documentoSeleccionado = null,
-                observacionesInput = "",
-                cargandoDocumentos = true,
-                mensajeError = null
-            )
-        }
+    fun onBusquedaChange(query: String) {
+        _uiState.update { it.copy(filtroBusqueda = query) }
         viewModelScope.launch {
-            resultadoSolicitud { repository.getDocumentosAspirante(aspirante.id) }
-                .onSuccess { documentos ->
-                    val revisables = documentos.filter { it.estado == EstadoDocumento.SUBIDO }
-                    _uiState.update {
-                        it.copy(
-                            documentosParaRevision = revisables,
-                            documentoSeleccionado = revisables.singleOrNull(),
-                            cargandoDocumentos = false
-                        )
-                    }
-                }.onFailure { ex ->
-                    _uiState.update {
-                        it.copy(cargandoDocumentos = false, mensajeError = ex.message ?: "No se pudieron cargar los documentos")
-                    }
-                }
+            actualizarAspirantes()
         }
     }
 
-    fun cerrarDialogoRevision() {
-        if (_uiState.value.isLoading) return
-        _uiState.update { it.copy(aspiranteSeleccionadoParaRevision = null, mensajeError = null) }
-    }
-
-    fun seleccionarDocumento(documento: Documento) {
-        _uiState.update { it.copy(documentoSeleccionado = documento, mensajeError = null) }
-    }
-
-    fun onObservacionesChange(v: String) = _uiState.update { it.copy(observacionesInput = v) }
-
-    fun resolverRevision(aprobado: Boolean) {
-        val estado = _uiState.value
-        val doc = estado.documentoSeleccionado ?: return
-        if (estado.isLoading) return
-        val observaciones = estado.observacionesInput.trim()
-        if (!aprobado && observaciones.isBlank()) {
-            _uiState.update { it.copy(mensajeError = "Ingrese el motivo del rechazo") }
-            return
-        }
-
-        _uiState.update { it.copy(isLoading = true, mensajeError = null, mensajeExito = null) }
+    fun onFiltroEstadoChange(estado: EstadoInscripcion?) {
+        _uiState.update { it.copy(estadoFiltroSeleccionado = estado) }
         viewModelScope.launch {
-            repository.revisarDocumento(doc.id, aprobado, observaciones)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            aspiranteSeleccionadoParaRevision = null,
-                            mensajeExito = if (aprobado) "Documento aprobado" else "Documento rechazado"
-                        )
-                    }
-                    actualizarAspirantes()
-                }.onFailure { ex ->
-                    _uiState.update {
-                        it.copy(isLoading = false, mensajeError = ex.message ?: "No se pudo guardar el dictamen")
-                    }
-                }
+            actualizarAspirantes()
         }
     }
 
     private suspend fun actualizarAspirantes() {
-        resultadoSolicitud { repository.getAspirantesParaRevision() }
-            .onSuccess { aspirantes ->
-                _uiState.update { it.copy(aspirantes = aspirantes, isLoading = false) }
+        val estado = _uiState.value.estadoFiltroSeleccionado
+        val estadoApi = estado?.let {
+            when (it) {
+                EstadoInscripcion.PENDIENTE -> "en_captura"
+                EstadoInscripcion.EN_REVISION -> "en_revision"
+                EstadoInscripcion.CON_OBSERVACIONES -> "con_observaciones"
+                EstadoInscripcion.ACEPTADO -> "documentacion_aprobada"
+                EstadoInscripcion.RECHAZADO -> "rechazado"
+            }
+        }
+        val query = _uiState.value.filtroBusqueda.trim().ifBlank { null }
+        resultadoSolicitud {
+            val todos = repository.getAspirantesParaRevision()
+            val filtrados = repository.getAspirantesParaRevision(estadoApi, query)
+            todos to filtrados
+        }.onSuccess { (todos, filtrados) ->
+            _uiState.update {
+                it.copy(
+                    aspirantes = filtrados,
+                    totalAspirantes = todos.size,
+                    inRevision = todos.count { asp -> asp.estadoInscripcion == EstadoInscripcion.EN_REVISION },
+                    aprobados = todos.count { asp -> asp.estadoInscripcion == EstadoInscripcion.ACEPTADO },
+                    enCaptura = todos.count { asp -> asp.estadoInscripcion == EstadoInscripcion.PENDIENTE },
+                    conObservaciones = todos.count { asp -> asp.estadoInscripcion == EstadoInscripcion.CON_OBSERVACIONES },
+                    isLoading = false
+                )
+            }
             }.onFailure { ex ->
                 _uiState.update { it.copy(isLoading = false, mensajeError = ex.message ?: "No se pudo cargar el panel") }
             }

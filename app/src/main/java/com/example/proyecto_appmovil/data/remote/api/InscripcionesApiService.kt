@@ -19,11 +19,13 @@ import com.example.proyecto_appmovil.data.remote.dto.RevisionResponseDto
 import com.example.proyecto_appmovil.data.remote.dto.SubirDocumentoResponseDto
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -31,6 +33,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 interface InscripcionesApiService {
     @POST("auth/login")
@@ -93,7 +96,16 @@ interface InscripcionesApiService {
     suspend fun getFechasImportantes(): List<FechaImportanteDto>
 
     @POST("admin/fechas-importantes")
-    suspend fun crearFechaImportante(@Body request: CrearFechaImportanteDto): Response<Unit>
+    suspend fun crearFechaImportante(@Body request: CrearFechaImportanteDto): FechaImportanteDto
+
+    @PUT("admin/fechas-importantes/{id}")
+    suspend fun actualizarFechaImportante(
+        @Path("id") id: Long,
+        @Body request: CrearFechaImportanteDto
+    ): FechaImportanteDto
+
+    @DELETE("admin/fechas-importantes/{id}")
+    suspend fun eliminarFechaImportante(@Path("id") id: Long): Response<Unit>
 
     @GET("admin/aspirantes")
     suspend fun getAdminAspirantes(
@@ -106,6 +118,11 @@ interface InscripcionesApiService {
 
     @GET("admin/aspirantes/{id}/documentos")
     suspend fun getDocumentosAspirante(@Path("id") id: Long): List<DocumentoItemDto>
+
+    @Streaming
+    @Headers("Accept: application/pdf")
+    @GET("admin/documentos/{id}/archivo")
+    suspend fun descargarArchivoDocumento(@Path("id") id: Long): Response<ResponseBody>
 
     @POST("admin/documentos/{id}/revision")
     suspend fun revisarDocumento(

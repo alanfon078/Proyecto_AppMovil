@@ -25,7 +25,6 @@ import com.example.proyecto_appmovil.model.EstadoDocumento
 import com.example.proyecto_appmovil.model.EstadoInscripcion
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.ErrorBanner
-import com.example.proyecto_appmovil.ui.components.ItsurTextField
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.components.StatusChip
 import com.example.proyecto_appmovil.ui.screens.profile.DatoItem
@@ -48,8 +47,13 @@ fun AdminAspiranteDetailScreen(
         onNavigateBack = onNavigateBack,
         onObservacionesChange = viewModel::onObservacionesChange,
         onValidarDoc = viewModel::validarDocumento,
-        onAprobarAspirante = viewModel::aprobarAspirante
+        onAprobarAspirante = viewModel::aprobarAspirante,
+        onPrevisualizarPdf = viewModel::descargarPdf
     )
+
+    uiState.pdfPreviewFile?.let { file ->
+        PdfViewerDialog(file = file, onDismiss = viewModel::cerrarPdfPreview)
+    }
 }
 
 @Composable
@@ -58,8 +62,11 @@ fun AdminAspiranteDetailContent(
     onNavigateBack: () -> Unit,
     onObservacionesChange: (String) -> Unit,
     onValidarDoc: (String, Boolean) -> Unit,
-    onAprobarAspirante: () -> Unit
+    onAprobarAspirante: () -> Unit,
+    onPrevisualizarPdf: (String, String?) -> Unit
 ) {
+    var documentoARechazar by remember { mutableStateOf<com.example.proyecto_appmovil.model.Documento?>(null) }
+
     Scaffold(
         topBar = {
             ItsurTopBar(
@@ -177,16 +184,6 @@ fun AdminAspiranteDetailContent(
                 )
             }
 
-            if (uiState.documentos.any { it.estado == EstadoDocumento.SUBIDO }) {
-                item {
-                    ItsurTextField(
-                        value = uiState.observacionesInput,
-                        onValueChange = onObservacionesChange,
-                        label = "Observaciones para el documento"
-                    )
-                }
-            }
-
             items(uiState.documentos, key = { it.tipo.name }) { doc ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -236,6 +233,17 @@ fun AdminAspiranteDetailContent(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
+                        if (doc.nombreArchivo != null && doc.id.isNotBlank()) {
+                            OutlinedButton(
+                                onClick = { onPrevisualizarPdf(doc.id, doc.nombreArchivo) },
+                                enabled = !uiState.isLoading && !uiState.isDownloadingPdf,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (uiState.isDownloadingPdf) "Descargando PDF..." else "Ver / Previsualizar PDF")
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -252,7 +260,10 @@ fun AdminAspiranteDetailContent(
                                 Text("Aprobar", fontSize = 12.sp)
                             }
                             Button(
-                                onClick = { onValidarDoc(doc.id, false) },
+                                onClick = {
+                                    onObservacionesChange("")
+                                    documentoARechazar = doc
+                                },
                                 enabled = !uiState.isLoading && doc.estado == EstadoDocumento.SUBIDO,
                                 colors = ButtonDefaults.buttonColors(containerColor = StatusRechazado, disabledContentColor = Color.Black),
                                 shape = RoundedCornerShape(8.dp),
@@ -287,7 +298,9 @@ fun AdminAspiranteDetailContent(
                             Text("El trámite está aprobado", style = MaterialTheme.typography.bodySmall)
                         } else {
                             Text(
-                                "Aprueba los cuatro documentos obligatorios para emitir el dictamen.",
+                                "Aprobados: ${uiState.documentosAprobados} de 4 documentos obligatorios. " +
+                                    "Faltan ${uiState.documentosAprobadosFaltantes}. " +
+                                    "Aprueba todos para habilitar el trámite.",
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Spacer(modifier = Modifier.height(14.dp))
@@ -322,6 +335,35 @@ fun AdminAspiranteDetailContent(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+
+        documentoARechazar?.let { documento ->
+            AlertDialog(
+                onDismissRequest = { documentoARechazar = null },
+                title = { Text("Rechazar ${documento.tipo.titulo}") },
+                text = {
+                    OutlinedTextField(
+                        value = uiState.observacionesInput,
+                        onValueChange = onObservacionesChange,
+                        label = { Text("Observaciones obligatorias") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (uiState.observacionesInput.trim().isNotEmpty()) {
+                                onValidarDoc(documento.id, false)
+                                documentoARechazar = null
+                            }
+                        },
+                        enabled = uiState.observacionesInput.trim().isNotEmpty() && !uiState.isLoading
+                    ) { Text("Rechazar documento") }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { documentoARechazar = null }) { Text("Cancelar") }
+                }
+            )
+        }
     }
 }
 
@@ -334,7 +376,8 @@ fun AdminAspiranteDetailPreview() {
             onNavigateBack = {},
             onObservacionesChange = {},
             onValidarDoc = { _, _ -> },
-            onAprobarAspirante = {}
+            onAprobarAspirante = {},
+            onPrevisualizarPdf = { _, _ -> }
         )
     }
 }

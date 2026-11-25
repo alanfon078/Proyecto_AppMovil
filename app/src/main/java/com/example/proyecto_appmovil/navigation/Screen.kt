@@ -12,6 +12,8 @@ sealed class Screen(val route: String) {
     // Módulos para rol Escolar / Administrador
     object AdminHome : Screen("admin_home")
     object AdminFechas : Screen("admin_fechas")
+    object AdminQuestions : Screen("admin_questions")
+    object AdminBroadcast : Screen("admin_broadcast")
     object AdminAspiranteDetail : Screen("admin_aspirante/{aspiranteId}") {
         fun createRoute(aspiranteId: String): String = "admin_aspirante/$aspiranteId"
     }
