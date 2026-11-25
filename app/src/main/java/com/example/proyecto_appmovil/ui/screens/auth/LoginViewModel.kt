@@ -34,38 +34,17 @@ class LoginViewModel(
         _uiState.update { it.copy(contrasena = nuevo, errorContrasena = null, errorMessage = null) }
     }
 
-    fun setDemoAspirante() {
-        _uiState.update {
-            it.copy(
-                usuario = "alan.fonseca@alumnos.itsur.edu.mx",
-                contrasena = "itsur2026",
-                errorUsuario = null,
-                errorContrasena = null
-            )
-        }
-    }
-
-    fun setDemoEscolar() {
-        _uiState.update {
-            it.copy(
-                usuario = "escolar.admin@itsur.edu.mx",
-                contrasena = "admin123",
-                errorUsuario = null,
-                errorContrasena = null
-            )
-        }
-    }
-
     fun login(onSuccess: (String) -> Unit) {
+        if (_uiState.value.isLoading) return
         val user = _uiState.value.usuario.trim()
-        val pass = _uiState.value.contrasena.trim()
+        val pass = _uiState.value.contrasena
 
         var hasError = false
         if (user.isBlank()) {
             _uiState.update { it.copy(errorUsuario = "Ingrese su usuario o correo") }
             hasError = true
         }
-        if (pass.isBlank()) {
+        if (pass.isEmpty()) {
             _uiState.update { it.copy(errorContrasena = "Ingrese su contraseña") }
             hasError = true
         }

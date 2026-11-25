@@ -25,6 +25,7 @@ import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTextField
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.components.PrimaryButton
+import com.example.proyecto_appmovil.ui.components.itsurTextFieldColors
 import com.example.proyecto_appmovil.ui.theme.*
 
 @Composable
@@ -37,8 +38,6 @@ fun RegisterScreen(
 
     RegisterContent(
         uiState = uiState,
-        carrerasItsur = viewModel.carrerasItsur,
-        municipiosGto = viewModel.municipiosGto,
         onNavigateBack = onNavigateBack,
         onNombresChange = viewModel::onNombresChange,
         onApellidosChange = viewModel::onApellidosChange,
@@ -46,6 +45,8 @@ fun RegisterScreen(
         onEmailChange = viewModel::onEmailChange,
         onTelefonoChange = viewModel::onTelefonoChange,
         onCarreraChange = viewModel::onCarreraChange,
+        onRecargarCarreras = viewModel::cargarCarreras,
+        onEstadoChange = viewModel::onEstadoChange,
         onMunicipioChange = viewModel::onMunicipioChange,
         onContrasenaChange = viewModel::onContrasenaChange,
         onConfirmarContrasenaChange = viewModel::onConfirmarContrasenaChange,
@@ -57,22 +58,21 @@ fun RegisterScreen(
 @Composable
 fun RegisterContent(
     uiState: RegisterUiState,
-    carrerasItsur: List<String>,
-    municipiosGto: List<String>,
     onNavigateBack: () -> Unit,
     onNombresChange: (String) -> Unit,
     onApellidosChange: (String) -> Unit,
     onCurpChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onTelefonoChange: (String) -> Unit,
-    onCarreraChange: (String) -> Unit,
+    onCarreraChange: (Int) -> Unit,
+    onRecargarCarreras: () -> Unit,
+    onEstadoChange: (String) -> Unit,
     onMunicipioChange: (String) -> Unit,
     onContrasenaChange: (String) -> Unit,
     onConfirmarContrasenaChange: (String) -> Unit,
     onRegistrarClick: () -> Unit
 ) {
     var carreraExpanded by remember { mutableStateOf(false) }
-    var municipioExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier
@@ -186,14 +186,16 @@ fun RegisterContent(
             // Selector de Carrera ITSUR
             ExposedDropdownMenuBox(
                 expanded = carreraExpanded,
-                onExpandedChange = { carreraExpanded = !carreraExpanded },
+                onExpandedChange = { if (uiState.carreras.isNotEmpty()) carreraExpanded = it },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = uiState.carrera,
+                    value = uiState.carreras.firstOrNull { it.idCarrera == uiState.idCarrera }?.nombre.orEmpty(),
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Carrera de Interés") },
+                    isError = uiState.errorCarrera != null,
+                    supportingText = { uiState.errorCarrera?.let { Text(it) } },
                     leadingIcon = {
                         Icon(Icons.Default.School, contentDescription = null, tint = ItsurCiruela)
                     },
@@ -201,10 +203,7 @@ fun RegisterContent(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = carreraExpanded)
                     },
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ItsurCiruela,
-                        focusedLabelColor = ItsurCiruela
-                    ),
+                    colors = itsurTextFieldColors(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable)
@@ -213,11 +212,11 @@ fun RegisterContent(
                     expanded = carreraExpanded,
                     onDismissRequest = { carreraExpanded = false }
                 ) {
-                    carrerasItsur.forEach { carrera ->
+                    uiState.carreras.forEach { carrera ->
                         DropdownMenuItem(
-                            text = { Text(carrera) },
+                            text = { Text(carrera.nombre) },
                             onClick = {
-                                onCarreraChange(carrera)
+                                onCarreraChange(carrera.idCarrera)
                                 carreraExpanded = false
                             }
                         )
@@ -227,54 +226,42 @@ fun RegisterContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Selector de Municipio
-            ExposedDropdownMenuBox(
-                expanded = municipioExpanded,
-                onExpandedChange = { municipioExpanded = !municipioExpanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = "${uiState.municipio}, ${uiState.estado}",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Municipio / Estado de Residencia") },
-                    leadingIcon = {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = ItsurCiruela)
-                    },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = municipioExpanded)
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ItsurCiruela,
-                        focusedLabelColor = ItsurCiruela
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                )
-                ExposedDropdownMenu(
-                    expanded = municipioExpanded,
-                    onDismissRequest = { municipioExpanded = false }
-                ) {
-                    municipiosGto.forEach { muni ->
-                        DropdownMenuItem(
-                            text = { Text("$muni, Guanajuato") },
-                            onClick = {
-                                onMunicipioChange(muni)
-                                municipioExpanded = false
-                            }
-                        )
-                    }
-                }
+            if (uiState.cargandoCarreras) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
+            uiState.errorCatalogo?.let { error ->
+                ErrorBanner(mensaje = error)
+                TextButton(onClick = onRecargarCarreras) { Text("Reintentar catálogo de carreras", color = ItsurOnSurface) }
+            }
+
+            ItsurTextField(
+                value = uiState.estado,
+                onValueChange = onEstadoChange,
+                label = "Estado de Residencia",
+                leadingIcon = Icons.Default.LocationOn,
+                errorMessage = uiState.errorEstado,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ItsurTextField(
+                value = uiState.municipio,
+                onValueChange = onMunicipioChange,
+                label = "Municipio de Residencia",
+                leadingIcon = Icons.Default.LocationOn,
+                errorMessage = uiState.errorMunicipio,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             ItsurTextField(
                 value = uiState.contrasena,
                 onValueChange = onContrasenaChange,
-                label = "Contraseña (mínimo 6 caracteres)",
+                label = "Contraseña (mínimo 8 caracteres)",
                 leadingIcon = Icons.Default.Lock,
                 isPassword = true,
                 errorMessage = uiState.errorContrasena,
@@ -315,7 +302,7 @@ fun RegisterContent(
             Spacer(modifier = Modifier.height(12.dp))
 
             TextButton(onClick = onNavigateBack) {
-                Text("¿Ya tienes una cuenta? Inicia sesión aquí", color = ItsurCiruela, fontWeight = FontWeight.Bold)
+                Text("¿Ya tienes una cuenta? Inicia sesión aquí", color = ItsurOnSurface, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -329,8 +316,6 @@ fun RegisterScreenPreview() {
     AppTheme {
         RegisterContent(
             uiState = RegisterUiState(),
-            carrerasItsur = listOf("Ing. Sistemas Computacionales", "Ing. Industrial"),
-            municipiosGto = listOf("Uriangato", "Moroleón"),
             onNavigateBack = {},
             onNombresChange = {},
             onApellidosChange = {},
@@ -338,6 +323,8 @@ fun RegisterScreenPreview() {
             onEmailChange = {},
             onTelefonoChange = {},
             onCarreraChange = {},
+            onRecargarCarreras = {},
+            onEstadoChange = {},
             onMunicipioChange = {},
             onContrasenaChange = {},
             onConfirmarContrasenaChange = {},

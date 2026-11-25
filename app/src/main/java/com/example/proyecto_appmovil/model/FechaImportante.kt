@@ -6,5 +6,5 @@ data class FechaImportante(
     val descripcion: String,
     val fechaLimite: String,
     val diasRestantes: Int,
-    val tipo: String = "limite_entrega" // limite_entrega, examen, propedeutico, pago
+    val tipo: String = "limite_entrega"
 )

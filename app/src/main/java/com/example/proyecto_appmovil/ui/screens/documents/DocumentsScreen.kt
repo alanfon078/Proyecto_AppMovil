@@ -1,6 +1,6 @@
 package com.example.proyecto_appmovil.ui.screens.documents
 
-import android.net.Uri
+import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,17 +39,9 @@ fun DocumentsScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "documento.pdf"
-            viewModel.onArchivoSeleccionado(
-                uriString = uri.toString(),
-                nombre = if (fileName.endsWith(".pdf", ignoreCase = true)) fileName else "$fileName.pdf",
-                tamano = 1024 * 1024 * 2 // ~2MB simulado
-            )
-        }
-    }
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = viewModel::onArchivoSeleccionado
+    )
 
     DocumentsContent(
         uiState = uiState,
@@ -84,6 +77,10 @@ fun DocumentsContent(
         ) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
+                if (uiState.isLoading) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 // Card explicativa
                 Card(
@@ -134,7 +131,7 @@ fun DocumentsContent(
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = uiState.mensajeExito ?: "",
-                                color = StatusAprobado,
+                                color = ItsurOnSurface,
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -145,9 +142,10 @@ fun DocumentsContent(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
-            items(uiState.documentos, key = { it.id }) { doc ->
+            items(uiState.documentos, key = { it.tipo.name }) { doc ->
                 DocumentoItemCard(
                     documento = doc,
+                    habilitarSubida = !uiState.isLoading && doc.estado != EstadoDocumento.VALIDADO,
                     onSubirClick = { onSubirClick(doc.tipo) }
                 )
             }
@@ -157,7 +155,7 @@ fun DocumentsContent(
                 OutlinedButton(
                     onClick = onNavigateBack,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
@@ -175,6 +173,7 @@ fun DocumentsContent(
 @Composable
 fun DocumentoItemCard(
     documento: Documento,
+    habilitarSubida: Boolean,
     onSubirClick: () -> Unit
 ) {
     Card(
@@ -229,9 +228,14 @@ fun DocumentoItemCard(
                             fontWeight = FontWeight.Bold,
                             color = ItsurVinoOscuro
                         )
-                        val pesoStr = if (documento.tamanoBytes > 0) "${documento.tamanoBytes / 1024} KB" else "2.1 MB"
+                        val peso = Formatter.formatFileSize(LocalContext.current, documento.tamanoBytes)
+                        val detalles = listOfNotNull(
+                            "Versión: ${documento.version}",
+                            "Tamaño: $peso",
+                            documento.fechaSubida?.let { "Cargado: $it" }
+                        )
                         Text(
-                            text = "Versión: v${documento.version}.0 • Tamaño: $pesoStr • Cargado: ${documento.fechaSubida ?: "Reciente"}",
+                            text = detalles.joinToString(" • "),
                             style = MaterialTheme.typography.labelSmall,
                             color = ItsurOnSurfaceVariant
                         )
@@ -251,9 +255,11 @@ fun DocumentoItemCard(
 
             Button(
                 onClick = onSubirClick,
+                enabled = habilitarSubida,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (documento.nombreArchivo != null) ItsurRosaPastel else ItsurCiruela,
-                    contentColor = if (documento.nombreArchivo != null) ItsurVinoOscuro else Color.White
+                    contentColor = if (documento.nombreArchivo != null) Color.Black else Color.White,
+                    disabledContentColor = Color.Black
                 ),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -279,26 +285,7 @@ fun DocumentoItemCard(
 fun DocumentsScreenPreview() {
     AppTheme {
         DocumentsContent(
-            uiState = DocumentsUiState(
-                documentos = listOf(
-                    Documento(
-                        id = "1",
-                        tipo = TipoDocumento.ACTA_NACIMIENTO,
-                        nombreArchivo = "acta_nacimiento_valida.pdf",
-                        tamanoBytes = 2048 * 1024,
-                        fechaSubida = "Hoy",
-                        estado = EstadoDocumento.VALIDADO,
-                        version = 1
-                    ),
-                    Documento(
-                        id = "2",
-                        tipo = TipoDocumento.CURP,
-                        nombreArchivo = null,
-                        estado = EstadoDocumento.PENDIENTE,
-                        version = 1
-                    )
-                )
-            ),
+            uiState = DocumentsUiState(),
             onNavigateBack = {},
             onSubirClick = {}
         )

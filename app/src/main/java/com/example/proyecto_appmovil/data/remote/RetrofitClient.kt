@@ -1,8 +1,15 @@
 package com.example.proyecto_appmovil.data.remote
 
+import com.example.proyecto_appmovil.BuildConfig
+import com.example.proyecto_appmovil.data.local.session.SessionManager
+import com.example.proyecto_appmovil.data.local.session.SessionTokens
 import com.example.proyecto_appmovil.data.remote.api.InscripcionesApiService
+import com.example.proyecto_appmovil.data.remote.dto.RefreshTokenRequestDto
+import com.google.gson.Gson
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -11,53 +18,72 @@ import java.util.concurrent.TimeUnit
 
 class AuthInterceptor(private val tokenProvider: () -> String?) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val originalRequest = chain.request()
-        val token = tokenProvider()
-
-        val newRequest = if (!token.isNullOrBlank()) {
-            originalRequest.newBuilder()
-                .header("Authorization", "Bearer $token")
-                .header("Accept", "application/json")
-                .build()
-        } else {
-            originalRequest.newBuilder()
-                .header("Accept", "application/json")
-                .build()
+        val original = chain.request()
+        val request = original.newBuilder().header("Accept", "application/json")
+        val path = original.url.encodedPath
+        if (publicPaths.none(path::endsWith)) {
+            tokenProvider()?.let { request.header("Authorization", "Bearer $it") }
         }
+        return chain.proceed(request.build())
+    }
 
-        return chain.proceed(newRequest)
+    private companion object {
+        val publicPaths = listOf("/auth/login", "/auth/register", "/auth/refresh", "/catalogos/carreras")
     }
 }
 
 object RetrofitClient {
-    const val BASE_URL = "http://10.0.2.2:3000/api/v1/"
+    const val BASE_URL = BuildConfig.BASE_URL
 
     fun createOkHttpClient(tokenProvider: () -> String? = { null }): OkHttpClient {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+        val logging = HttpLoggingInterceptor().apply {
+            redactHeader("Authorization")
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS
+                else HttpLoggingInterceptor.Level.NONE
         }
-
-        val authInterceptor = AuthInterceptor(tokenProvider)
-
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
-            .addInterceptor(authInterceptor)
-            .addInterceptor(loggingInterceptor)
+            .addInterceptor(AuthInterceptor(tokenProvider))
+            .addInterceptor(logging)
             .build()
     }
 
-    fun createRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+    fun createApiService(sessionManager: SessionManager? = null): InscripcionesApiService {
+        val client = createOkHttpClient { sessionManager?.getTokens()?.accessToken }
+        if (sessionManager == null) return createApi(client)
+
+        val refreshApi = createApi(createOkHttpClient())
+        val authenticated = client.newBuilder().authenticator { _, response ->
+            val token = response.request.header("Authorization")?.removePrefix("Bearer ")
+            if (response.priorResponse?.code == 401 ||
+                token == null ||
+                response.header("WWW-Authenticate")?.startsWith("Bearer", ignoreCase = true) != true
+            ) {
+                return@authenticator null
+            }
+
+            val renewed = sessionManager.refreshTokens(token) { refreshToken ->
+                val result = refreshApi.refresh(RefreshTokenRequestDto(refreshToken)).execute()
+                result.errorBody()?.close()
+                result.body()?.let { SessionTokens(it.accessToken, it.refreshToken) }
+            } ?: return@authenticator null
+
+            val retry = response.request.newBuilder().header("Authorization", "Bearer ${renewed.accessToken}")
+            if (response.request.url.encodedPath.endsWith("/auth/logout")) {
+                val body = Gson().toJson(RefreshTokenRequestDto(renewed.refreshToken))
+                retry.post(body.toRequestBody("application/json".toMediaType()))
+            }
+            retry.build()
+        }.build()
+        return createApi(authenticated)
     }
 
-    fun createApiService(tokenProvider: () -> String? = { null }): InscripcionesApiService {
-        val okHttpClient = createOkHttpClient(tokenProvider)
-        return createRetrofit(okHttpClient).create(InscripcionesApiService::class.java)
-    }
+    private fun createApi(client: OkHttpClient): InscripcionesApiService = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(InscripcionesApiService::class.java)
 }

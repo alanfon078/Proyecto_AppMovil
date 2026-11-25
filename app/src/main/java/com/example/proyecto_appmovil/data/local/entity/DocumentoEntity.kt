@@ -15,24 +15,19 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [
-        Index(value = ["idAspirante"]),
-        Index(value = ["tipoCodigo"])
-    ]
+    indices = [Index(value = ["idAspirante"]), Index(value = ["tipoCodigo"])]
 )
 data class DocumentoEntity(
-    @PrimaryKey(autoGenerate = true)
-    val idLocal: Long = 0,
+    @PrimaryKey(autoGenerate = true) val idLocal: Long = 0,
     val idRemoto: Long? = null,
     val idAspirante: Long,
     val idTipoDocumento: Int,
     val tipoCodigo: String,
-    val rutaLocal: String? = null,
     val nombreOriginal: String? = null,
     val tamanoBytes: Long = 0L,
     val mimeType: String? = null,
     val version: Int = 1,
-    val estado: String = "PENDIENTE",
+    val estado: String,
     val observaciones: String? = null,
-    val syncPendiente: Boolean = false
+    val fechaSubida: String? = null
 )

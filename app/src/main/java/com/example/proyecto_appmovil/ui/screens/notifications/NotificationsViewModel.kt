@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
 import com.example.proyecto_appmovil.model.FechaImportante
 import com.example.proyecto_appmovil.model.Notificacion
+import com.example.proyecto_appmovil.ui.resultadoSolicitud
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +17,8 @@ data class NotificationsUiState(
     val fechas: List<FechaImportante> = emptyList(),
     val tabSeleccionada: Int = 0, // 0: Avisos, 1: Fechas límite
     val soloNoLeidas: Boolean = false,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val mensajeError: String? = null
 )
 
 class NotificationsViewModel(
@@ -32,16 +34,17 @@ class NotificationsViewModel(
 
     fun cargarDatos() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val notifs = repository.getNotificaciones()
-            val fechas = repository.getFechasImportantes()
-            _uiState.update {
-                it.copy(
-                    notificaciones = notifs,
-                    fechas = fechas,
-                    isLoading = false
-                )
-            }
+            _uiState.update { it.copy(isLoading = true, mensajeError = null) }
+            resultadoSolicitud { repository.getNotificaciones() to repository.getFechasImportantes() }
+                .onSuccess { (notificaciones, fechas) ->
+                    _uiState.update {
+                        it.copy(notificaciones = notificaciones, fechas = fechas, isLoading = false)
+                    }
+                }.onFailure { ex ->
+                    _uiState.update {
+                        it.copy(isLoading = false, mensajeError = ex.message ?: "No se pudieron cargar los avisos")
+                    }
+                }
         }
     }
 
@@ -50,9 +53,19 @@ class NotificationsViewModel(
 
     fun marcarComoLeida(id: String) {
         viewModelScope.launch {
-            repository.marcarNotificacionLeida(id)
-            val updated = repository.getNotificaciones()
-            _uiState.update { it.copy(notificaciones = updated) }
+            resultadoSolicitud { repository.marcarNotificacionLeida(id) }
+                .onSuccess {
+                    _uiState.update { estado ->
+                        estado.copy(
+                            notificaciones = estado.notificaciones.map { notif ->
+                                if (notif.id == id) notif.copy(leida = true) else notif
+                            },
+                            mensajeError = null
+                        )
+                    }
+                }.onFailure { ex ->
+                    _uiState.update { it.copy(mensajeError = ex.message ?: "No se pudo marcar el aviso como leído") }
+                }
         }
     }
 }

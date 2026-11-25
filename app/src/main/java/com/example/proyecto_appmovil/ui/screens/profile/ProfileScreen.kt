@@ -17,7 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyecto_appmovil.model.Aspirante
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.*
 import com.example.proyecto_appmovil.ui.theme.*
@@ -35,6 +34,8 @@ fun ProfileScreen(
         onToggleEdit = viewModel::toggleEditMode,
         onTelefonoChange = viewModel::onTelefonoChange,
         onDireccionChange = viewModel::onDireccionChange,
+        onEstadoChange = viewModel::onEstadoChange,
+        onMunicipioChange = viewModel::onMunicipioChange,
         onGuardarCambios = viewModel::guardarCambios,
         onPasswordActualChange = viewModel::onPasswordActualChange,
         onPasswordNuevaChange = viewModel::onPasswordNuevaChange,
@@ -49,6 +50,8 @@ fun ProfileContent(
     onToggleEdit: () -> Unit,
     onTelefonoChange: (String) -> Unit,
     onDireccionChange: (String) -> Unit,
+    onEstadoChange: (String) -> Unit,
+    onMunicipioChange: (String) -> Unit,
     onGuardarCambios: () -> Unit,
     onPasswordActualChange: (String) -> Unit,
     onPasswordNuevaChange: (String) -> Unit,
@@ -86,7 +89,7 @@ fun ProfileContent(
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .background(color = ItsurCiruela, shape = RoundedCornerShape(16.dp)),
+                                .background(color = ItsurOnSurface, shape = RoundedCornerShape(16.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -126,7 +129,7 @@ fun ProfileContent(
                 ) {
                     Text(
                         text = uiState.mensajeExito ?: "",
-                        color = StatusAprobado,
+                        color = ItsurOnSurface,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(14.dp)
@@ -157,7 +160,7 @@ fun ProfileContent(
                     DatoItem(label = "Correo Electrónico", valor = uiState.aspirante?.email ?: "")
                     DatoItem(
                         label = "Promedio Bachillerato",
-                        valor = "${uiState.aspirante?.promedioBachillerato ?: 0.0}"
+                        valor = uiState.aspirante?.promedioBachillerato?.toString().orEmpty()
                     )
                 }
             }
@@ -183,10 +186,10 @@ fun ProfileContent(
                             fontWeight = FontWeight.Bold,
                             color = ItsurVinoOscuro
                         )
-                        TextButton(onClick = onToggleEdit) {
+                        TextButton(onClick = onToggleEdit, enabled = uiState.aspirante != null && !uiState.isLoading) {
                             Text(
                                 text = if (uiState.isEditMode) "Cancelar" else "Editar",
-                                color = ItsurCiruela,
+                                color = ItsurOnSurface,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -205,8 +208,22 @@ fun ProfileContent(
                         ItsurTextField(
                             value = uiState.direccionEdit,
                             onValueChange = onDireccionChange,
-                            label = "Dirección / Municipio",
+                            label = "Dirección (calle y colonia)",
                             leadingIcon = Icons.Default.Home
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ItsurTextField(
+                            value = uiState.municipioEdit,
+                            onValueChange = onMunicipioChange,
+                            label = "Municipio",
+                            leadingIcon = Icons.Default.LocationOn
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ItsurTextField(
+                            value = uiState.estadoEdit,
+                            onValueChange = onEstadoChange,
+                            label = "Estado",
+                            leadingIcon = Icons.Default.LocationOn
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PrimaryButton(
@@ -216,7 +233,9 @@ fun ProfileContent(
                         )
                     } else {
                         DatoItem(label = "Teléfono", valor = uiState.aspirante?.telefono ?: "")
-                        DatoItem(label = "Dirección", valor = uiState.aspirante?.direccion ?: "")
+                        DatoItem(label = "Dirección (calle y colonia)", valor = uiState.aspirante?.direccion.orEmpty())
+                        DatoItem(label = "Municipio", valor = uiState.aspirante?.municipioResidencia.orEmpty())
+                        DatoItem(label = "Estado", valor = uiState.aspirante?.estadoResidencia.orEmpty())
                         DatoItem(label = "Carrera Asignada", valor = uiState.aspirante?.carrera ?: "")
                     }
                 }
@@ -250,14 +269,15 @@ fun ProfileContent(
                     ItsurTextField(
                         value = uiState.passwordNueva,
                         onValueChange = onPasswordNuevaChange,
-                        label = "Nueva Contraseña (mín. 6 caracteres)",
+                        label = "Nueva Contraseña (mín. 8 caracteres)",
                         leadingIcon = Icons.Default.Lock,
                         isPassword = true
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     PrimaryButton(
                         text = "Actualizar Contraseña",
-                        enabled = uiState.passwordNueva.isNotBlank(),
+                        enabled = uiState.passwordActual.isNotEmpty() && uiState.passwordNueva.isNotEmpty(),
+                        isLoading = uiState.isLoading,
                         onClick = onCambiarPassword
                     )
                 }
@@ -268,7 +288,7 @@ fun ProfileContent(
             OutlinedButton(
                 onClick = onNavigateBack,
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
@@ -296,21 +316,13 @@ fun DatoItem(label: String, valor: String) {
 fun ProfileScreenPreview() {
     AppTheme {
         ProfileContent(
-            uiState = ProfileUiState(
-                aspirante = Aspirante(
-                    nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
-                    folioAspirante = "ITSUR-2026-0042",
-                    curp = "OOAD030515HGTRRN01",
-                    email = "aspirante@itsur.edu.mx",
-                    telefono = "4451234567",
-                    carrera = "Ing. Sistemas Computacionales",
-                    direccion = "Uriangato, Gto."
-                )
-            ),
+            uiState = ProfileUiState(),
             onNavigateBack = {},
             onToggleEdit = {},
             onTelefonoChange = {},
             onDireccionChange = {},
+            onEstadoChange = {},
+            onMunicipioChange = {},
             onGuardarCambios = {},
             onPasswordActualChange = {},
             onPasswordNuevaChange = {},

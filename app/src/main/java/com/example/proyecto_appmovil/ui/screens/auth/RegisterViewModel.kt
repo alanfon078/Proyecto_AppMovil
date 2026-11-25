@@ -2,6 +2,7 @@ package com.example.proyecto_appmovil.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.proyecto_appmovil.data.local.entity.CarreraEntity
 import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,9 +16,12 @@ data class RegisterUiState(
     val curp: String = "",
     val email: String = "",
     val telefono: String = "",
-    val carrera: String = "Ing. Sistemas Computacionales",
-    val estado: String = "Guanajuato",
-    val municipio: String = "Uriangato",
+    val idCarrera: Int? = null,
+    val carreras: List<CarreraEntity> = emptyList(),
+    val cargandoCarreras: Boolean = false,
+    val errorCatalogo: String? = null,
+    val estado: String = "",
+    val municipio: String = "",
     val contrasena: String = "",
     val confirmarContrasena: String = "",
     val errorNombres: String? = null,
@@ -25,6 +29,9 @@ data class RegisterUiState(
     val errorCurp: String? = null,
     val errorEmail: String? = null,
     val errorTelefono: String? = null,
+    val errorCarrera: String? = null,
+    val errorEstado: String? = null,
+    val errorMunicipio: String? = null,
     val errorContrasena: String? = null,
     val errorConfirmarContrasena: String? = null,
     val isLoading: Boolean = false,
@@ -36,43 +43,47 @@ class RegisterViewModel(
     private val repository: InscripcionesRepository
 ) : ViewModel() {
 
-    val carrerasItsur = listOf(
-        "Ing. Sistemas Computacionales",
-        "Ing. Sistemas Automotrices",
-        "Ing. Ambiental",
-        "Lic. Gestión Empresarial",
-        "Ing. Industrial",
-        "Ing. Electrónica",
-        "Ing. Semiconductores",
-        "Lic. Gastronomía y Turismo"
-    )
-
-    val municipiosGto = listOf(
-        "Uriangato",
-        "Moroleón",
-        "Yuriria",
-        "Salvatierra",
-        "Valle de Santiago",
-        "Celaya",
-        "Irapuato",
-        "León"
-    )
-
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.getCarrerasFlow().collect { carreras ->
+                _uiState.update { it.copy(carreras = carreras.filter(CarreraEntity::activa)) }
+            }
+        }
+        cargarCarreras()
+    }
+
+    fun cargarCarreras() {
+        if (_uiState.value.cargandoCarreras) return
+        _uiState.update { it.copy(cargandoCarreras = true, errorCatalogo = null) }
+        viewModelScope.launch {
+            val resultado = repository.refreshCatalogos()
+            _uiState.update {
+                it.copy(
+                    cargandoCarreras = false,
+                    errorCatalogo = resultado.exceptionOrNull()?.message
+                )
+            }
+        }
+    }
 
     fun onNombresChange(v: String) = _uiState.update { it.copy(nombres = v, errorNombres = null) }
     fun onApellidosChange(v: String) = _uiState.update { it.copy(apellidos = v, errorApellidos = null) }
     fun onCurpChange(v: String) = _uiState.update { it.copy(curp = v.uppercase().take(18), errorCurp = null) }
     fun onEmailChange(v: String) = _uiState.update { it.copy(email = v, errorEmail = null) }
     fun onTelefonoChange(v: String) = _uiState.update { it.copy(telefono = v.filter { ch -> ch.isDigit() }.take(10), errorTelefono = null) }
-    fun onCarreraChange(v: String) = _uiState.update { it.copy(carrera = v) }
-    fun onMunicipioChange(v: String) = _uiState.update { it.copy(municipio = v) }
+    fun onCarreraChange(id: Int) = _uiState.update { it.copy(idCarrera = id, errorCarrera = null) }
+    fun onEstadoChange(v: String) = _uiState.update { it.copy(estado = v.take(100), errorEstado = null) }
+    fun onMunicipioChange(v: String) = _uiState.update { it.copy(municipio = v.take(120), errorMunicipio = null) }
     fun onContrasenaChange(v: String) = _uiState.update { it.copy(contrasena = v, errorContrasena = null) }
     fun onConfirmarContrasenaChange(v: String) = _uiState.update { it.copy(confirmarContrasena = v, errorConfirmarContrasena = null) }
 
     fun registrar(onSuccess: () -> Unit) {
         val s = _uiState.value
+        if (s.isLoading) return
+        val idCarrera = s.idCarrera
         var valid = true
 
         if (s.nombres.isBlank()) {
@@ -96,8 +107,20 @@ class RegisterViewModel(
             _uiState.update { it.copy(errorTelefono = "El teléfono debe ser de 10 dígitos") }
             valid = false
         }
-        if (s.contrasena.length < 6) {
-            _uiState.update { it.copy(errorContrasena = "La contraseña debe tener mínimo 6 caracteres") }
+        if (idCarrera == null || s.carreras.none { it.idCarrera == idCarrera }) {
+            _uiState.update { it.copy(errorCarrera = "Seleccione una carrera") }
+            valid = false
+        }
+        if (s.estado.isBlank()) {
+            _uiState.update { it.copy(errorEstado = "Ingrese su estado de residencia") }
+            valid = false
+        }
+        if (s.municipio.isBlank()) {
+            _uiState.update { it.copy(errorMunicipio = "Ingrese su municipio de residencia") }
+            valid = false
+        }
+        if (Character.codePointCount(s.contrasena, 0, s.contrasena.length) < 8) {
+            _uiState.update { it.copy(errorContrasena = "La contraseña debe tener mínimo 8 caracteres") }
             valid = false
         }
         if (s.contrasena != s.confirmarContrasena) {
@@ -105,20 +128,20 @@ class RegisterViewModel(
             valid = false
         }
 
-        if (!valid) return
+        if (!valid || idCarrera == null) return
 
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         viewModelScope.launch {
             val nombreCompleto = "${s.nombres.trim()} ${s.apellidos.trim()}"
-            val direccion = "${s.municipio}, ${s.estado}"
             val result = repository.registrarAspirante(
                 nombreCompleto = nombreCompleto,
                 curp = s.curp,
-                email = s.email,
+                email = s.email.trim(),
                 telefono = s.telefono,
-                carrera = s.carrera,
-                direccion = direccion,
+                idCarrera = idCarrera,
+                estadoResidencia = s.estado.trim(),
+                municipioResidencia = s.municipio.trim(),
                 contrasena = s.contrasena
             )
 

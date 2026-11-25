@@ -6,7 +6,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,11 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyecto_appmovil.model.Aspirante
-import com.example.proyecto_appmovil.model.EstadoInscripcion
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
+import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.components.OptionCard
 import com.example.proyecto_appmovil.ui.components.StatusChip
@@ -31,7 +28,6 @@ fun HomeScreen(
     onNavigateToStatus: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onNavigateToPayment: () -> Unit,
     onLogout: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -47,7 +43,6 @@ fun HomeScreen(
         onNavigateToStatus = onNavigateToStatus,
         onNavigateToProfile = onNavigateToProfile,
         onNavigateToNotifications = onNavigateToNotifications,
-        onNavigateToPayment = onNavigateToPayment,
         onLogout = onLogout
     )
 }
@@ -59,7 +54,6 @@ fun HomeContent(
     onNavigateToStatus: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onNavigateToPayment: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -81,73 +75,78 @@ fun HomeContent(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tarjeta de bienvenida del aspirante
-            Card(
-                colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 20.dp)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+            if (uiState.isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            uiState.mensajeError?.let { ErrorBanner(mensaje = it) }
+
+            uiState.aspirante?.let { aspirante ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "¡Bienvenido, Aspirante!",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = ItsurVinoOscuro
+                            )
+                            StatusChip(status = aspirante.estadoInscripcion.name)
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
                         Text(
-                            text = "¡Bienvenido, Aspirante!",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            text = aspirante.nombreCompleto,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
                             color = ItsurVinoOscuro
                         )
-                        StatusChip(status = uiState.aspirante?.estadoInscripcion?.name ?: "EN_REVISION")
-                    }
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = uiState.aspirante?.nombreCompleto ?: "Aspirante ITSUR",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ItsurVinoOscuro
-                    )
-
-                    Text(
-                        text = "Folio: ${uiState.aspirante?.folioAspirante ?: "ITSUR-2026-0042"} • ${uiState.aspirante?.carrera ?: ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ItsurOnSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    HorizontalDivider(color = ItsurVinoOscuro.copy(alpha = 0.2f))
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
                         Text(
-                            text = "Avance de Documentos:",
+                            text = "Folio: ${aspirante.folioAspirante} • ${aspirante.carrera}",
                             style = MaterialTheme.typography.bodySmall,
                             color = ItsurOnSurfaceVariant
                         )
-                        Text(
-                            text = "${uiState.documentosSubidosCount} de ${uiState.totalDocumentosCount} completados",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = ItsurCiruela
-                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        HorizontalDivider(color = ItsurVinoOscuro.copy(alpha = 0.2f))
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Avance de Documentos:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ItsurOnSurfaceVariant
+                            )
+                            Text(
+                                text = "${uiState.documentosSubidosCount} de ${uiState.totalDocumentosCount} completados",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = ItsurOnSurface
+                            )
+                        }
                     }
                 }
             }
 
-            // Opciones del Menú (6 tarjetas principales + reglamento)
             OptionCard(
                 titulo = "Carga de Documentos",
-                descripcion = "Sube tus archivos PDF (Acta, CURP, Certificado)",
+                descripcion = "Sube tus archivos PDF (Acta, CURP, Certificado y Comprobante de Domicilio)",
                 icono = Icons.Default.CloudUpload,
                 badgeCount = (uiState.totalDocumentosCount - uiState.documentosSubidosCount).coerceAtLeast(0),
                 onClick = onNavigateToDocuments
@@ -181,34 +180,6 @@ fun HomeContent(
                 onClick = onNavigateToNotifications
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OptionCard(
-                titulo = "Comprobante de Pago",
-                descripcion = "Ficha de pago y reporte del comprobante bancario",
-                icono = Icons.Default.Payment,
-                onClick = onNavigateToPayment
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            OutlinedButton(
-                onClick = onLogout,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Cerrar Sesión", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -219,22 +190,11 @@ fun HomeContent(
 fun HomeScreenPreview() {
     AppTheme {
         HomeContent(
-            uiState = HomeUiState(
-                aspirante = Aspirante(
-                    nombreCompleto = "Alan Yael Fonseca Ruiz",
-                    folioAspirante = "ITSUR-2026-00001",
-                    carrera = "Ing. Sistemas Computacionales",
-                    estadoInscripcion = EstadoInscripcion.EN_REVISION
-                ),
-                totalDocumentosCount = 5,
-                documentosSubidosCount = 3,
-                notificacionesNoLeidasCount = 2
-            ),
+            uiState = HomeUiState(),
             onNavigateToDocuments = {},
             onNavigateToStatus = {},
             onNavigateToProfile = {},
             onNavigateToNotifications = {},
-            onNavigateToPayment = {},
             onLogout = {}
         )
     }

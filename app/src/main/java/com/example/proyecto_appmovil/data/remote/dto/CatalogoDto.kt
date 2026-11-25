@@ -3,49 +3,24 @@ package com.example.proyecto_appmovil.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 data class CarreraDto(
-    @SerializedName("idCarrera")
-    val idCarrera: Int,
-    @SerializedName("clave")
-    val clave: String,
-    @SerializedName("nombre")
-    val nombre: String,
-    @SerializedName("area")
-    val area: String,
-    @SerializedName("activa")
-    val activa: Boolean = true
-)
-
-data class EstadoDto(
-    @SerializedName("idEstado")
-    val idEstado: Int,
-    @SerializedName("nombre")
-    val nombre: String,
-    @SerializedName("abreviatura")
-    val abreviatura: String
-)
-
-data class MunicipioDto(
-    @SerializedName("idMunicipio")
-    val idMunicipio: Int,
-    @SerializedName("idEstado")
-    val idEstado: Int,
-    @SerializedName("nombre")
-    val nombre: String
+    @SerializedName("id_carrera") val idCarrera: Int,
+    @SerializedName("nombre") val nombre: String,
+    @SerializedName("activa") val activa: Boolean
 )
 
 data class FechaImportanteDto(
-    @SerializedName("idFecha")
-    val idFecha: Int,
-    @SerializedName("titulo")
-    val titulo: String,
-    @SerializedName("descripcion")
-    val descripcion: String,
-    @SerializedName("tipo")
-    val tipo: String,
-    @SerializedName("fechaLimite")
-    val fechaLimite: String,
-    @SerializedName("idCarrera")
-    val idCarrera: Int? = null,
-    @SerializedName("activa")
-    val activa: Boolean = true
+    @SerializedName("id_fecha") val idFecha: Long,
+    @SerializedName("titulo") val titulo: String,
+    @SerializedName("descripcion") val descripcion: String?,
+    @SerializedName("tipo") val tipo: String,
+    @SerializedName("fecha_limite") val fechaLimite: String,
+    @SerializedName("dias_restantes") val diasRestantes: Int,
+    @SerializedName("id_carrera") val idCarrera: Int?,
+    @SerializedName("activa") val activa: Boolean
+)
+
+data class CrearFechaImportanteDto(
+    @SerializedName("titulo") val titulo: String,
+    @SerializedName("descripcion") val descripcion: String,
+    @SerializedName("fecha_limite") val fechaLimite: String
 )

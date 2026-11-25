@@ -52,12 +52,14 @@ CREATE TABLE IF NOT EXISTS usuarios (
 CREATE TABLE IF NOT EXISTS aspirantes (
   id_aspirante BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario BIGINT UNSIGNED NOT NULL UNIQUE,
-  folio VARCHAR(25) NOT NULL UNIQUE,
+  folio VARCHAR(32) NOT NULL UNIQUE,
   curp CHAR(18) NOT NULL UNIQUE,
   telefono VARCHAR(15) NULL,
   direccion VARCHAR(255) NULL,
   id_estado SMALLINT UNSIGNED NULL,
   id_municipio SMALLINT UNSIGNED NULL,
+  estado_residencia VARCHAR(100) NULL,
+  municipio_residencia VARCHAR(120) NULL,
   id_carrera INT UNSIGNED NOT NULL,
   promedio_bachillerato DECIMAL(4,2) NULL,
   estado_inscripcion ENUM(
@@ -106,6 +108,8 @@ CREATE TABLE IF NOT EXISTS documentos (
   comprimido BOOLEAN NOT NULL DEFAULT FALSE,
   num_paginas SMALLINT UNSIGNED NULL,
   version INT UNSIGNED NOT NULL DEFAULT 1,
+  vigente BOOLEAN NOT NULL DEFAULT TRUE,
+  version_activa TINYINT AS (CASE WHEN vigente THEN 1 ELSE NULL END) VIRTUAL,
   estado ENUM(
     'pendiente',
     'aprobado',
@@ -115,6 +119,7 @@ CREATE TABLE IF NOT EXISTS documentos (
   ) NOT NULL DEFAULT 'pendiente',
   fecha_subida DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_doc_version (id_aspirante, id_tipo_documento, version),
+  UNIQUE KEY uq_doc_vigente (id_aspirante, id_tipo_documento, version_activa),
   KEY ix_doc_hash (hash_sha256),
   CONSTRAINT fk_doc_aspirante FOREIGN KEY (id_aspirante) REFERENCES aspirantes(id_aspirante)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -159,7 +164,7 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   id_notificacion BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario BIGINT UNSIGNED NOT NULL,
   id_revision BIGINT UNSIGNED NULL,
-  tipo ENUM('documento', 'fecha', 'pago', 'sistema') NOT NULL DEFAULT 'sistema',
+  tipo ENUM('documento', 'fecha', 'sistema') NOT NULL DEFAULT 'sistema',
   id_documento BIGINT UNSIGNED NULL,
   id_fecha INT UNSIGNED NULL,
   titulo VARCHAR(150) NOT NULL,
@@ -167,6 +172,7 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   leida BOOLEAN NOT NULL DEFAULT FALSE,
   fecha_envio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fecha_lectura DATETIME NULL,
+  KEY ix_not_usuario_leida (id_usuario, leida),
   CONSTRAINT fk_not_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_not_revision FOREIGN KEY (id_revision) REFERENCES revisiones(id_revision)
@@ -177,44 +183,7 @@ CREATE TABLE IF NOT EXISTS notificaciones (
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
--- 11. Comprobantes de Pago
-CREATE TABLE IF NOT EXISTS pagos (
-  id_pago BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  id_aspirante BIGINT UNSIGNED NOT NULL UNIQUE,
-  referencia_asignada VARCHAR(50) NULL,
-  monto_esperado DECIMAL(10,2) NULL,
-  folio_pago VARCHAR(50) NOT NULL,
-  monto DECIMAL(10,2) NOT NULL,
-  fecha_pago DATE NOT NULL,
-  id_documento BIGINT UNSIGNED NULL,
-  estado ENUM('pendiente', 'validado', 'rechazado') NOT NULL DEFAULT 'pendiente',
-  observaciones TEXT NULL,
-  id_validador BIGINT UNSIGNED NULL,
-  fecha_validacion DATETIME NULL,
-  fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_pago_asp FOREIGN KEY (id_aspirante) REFERENCES aspirantes(id_aspirante)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT fk_pago_doc FOREIGN KEY (id_documento) REFERENCES documentos(id_documento)
-    ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT fk_pago_validador FOREIGN KEY (id_validador) REFERENCES usuarios(id_usuario)
-    ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT chk_pago_monto CHECK (monto > 0)
-) ENGINE=InnoDB;
-
--- 12. Firmas del Reglamento Institucional
-CREATE TABLE IF NOT EXISTS firmas_reglamento (
-  id_firma BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  id_aspirante BIGINT UNSIGNED NOT NULL,
-  version_reglamento VARCHAR(20) NOT NULL,
-  ruta_firma VARCHAR(500) NOT NULL,
-  hash_sha256 CHAR(64) NOT NULL,
-  fecha_firma DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_firma (id_aspirante, version_reglamento),
-  CONSTRAINT fk_firma_asp FOREIGN KEY (id_aspirante) REFERENCES aspirantes(id_aspirante)
-    ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
--- 13. Sesiones y Refresh Tokens
+-- 11. Sesiones y Refresh Tokens
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id_token BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario BIGINT UNSIGNED NOT NULL,
@@ -226,3 +195,22 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   CONSTRAINT fk_rt_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
+
+-- Catálogos institucionales para una instalación nueva.
+INSERT INTO carreras (nombre_carrera) VALUES
+  ('Ing. Sistemas Computacionales'),
+  ('Ing. Sistemas Automotrices'),
+  ('Ing. Ambiental'),
+  ('Lic. Gestión Empresarial'),
+  ('Ing. Industrial'),
+  ('Ing. Electrónica'),
+  ('Ing. Semiconductores'),
+  ('Lic. Gastronomía y Turismo')
+ON DUPLICATE KEY UPDATE id_carrera = id_carrera;
+
+INSERT INTO tipos_documento (codigo, nombre_documento, descripcion, orden) VALUES
+  ('ACTA_NACIMIENTO', 'Acta de Nacimiento', 'Formato PDF legible y reciente', 1),
+  ('CERTIFICADO_BACHILLERATO', 'Certificado de Bachillerato', 'O constancia con promedio', 2),
+  ('CURP', 'CURP Certificada', 'Formato actualizado emitido por RENAPO', 3),
+  ('COMPROBANTE_DOMICILIO', 'Comprobante de Domicilio', 'Agua, luz o teléfono (máx. 3 meses)', 4)
+ON DUPLICATE KEY UPDATE id_tipo_documento = id_tipo_documento;

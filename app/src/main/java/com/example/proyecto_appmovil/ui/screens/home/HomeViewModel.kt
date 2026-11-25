@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyecto_appmovil.data.repository.InscripcionesRepository
 import com.example.proyecto_appmovil.model.Aspirante
+import com.example.proyecto_appmovil.ui.resultadoSolicitud
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,9 +14,10 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val aspirante: Aspirante? = null,
     val documentosSubidosCount: Int = 0,
-    val totalDocumentosCount: Int = 4,
+    val totalDocumentosCount: Int = 0,
     val notificacionesNoLeidasCount: Int = 0,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val mensajeError: String? = null
 )
 
 class HomeViewModel(
@@ -25,29 +27,26 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    init {
-        cargarDatos()
-    }
-
     fun cargarDatos() {
+        if (_uiState.value.isLoading) return
+        _uiState.update { it.copy(isLoading = true, mensajeError = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val aspirante = repository.getAspiranteActual()
-            val docs = repository.getDocumentos()
-            val notifs = repository.getNotificaciones()
-
-            val subidos = docs.count { it.estado.name == "VALIDADO" || it.estado.name == "SUBIDO" }
-            val noLeidas = notifs.count { !it.leida }
-
-            _uiState.update {
-                it.copy(
-                    aspirante = aspirante,
-                    documentosSubidosCount = subidos,
-                    totalDocumentosCount = docs.size,
-                    notificacionesNoLeidasCount = noLeidas,
-                    isLoading = false
-                )
-            }
+            resultadoSolicitud { repository.getMiResumen() }
+                .onSuccess { resumen ->
+                    _uiState.update {
+                        it.copy(
+                            aspirante = resumen.aspirante,
+                            documentosSubidosCount = resumen.subidos - resumen.rechazados,
+                            totalDocumentosCount = resumen.requeridos,
+                            notificacionesNoLeidasCount = resumen.notificacionesNoLeidas,
+                            isLoading = false
+                        )
+                    }
+                }.onFailure { ex ->
+                    _uiState.update {
+                        it.copy(isLoading = false, mensajeError = ex.message ?: "No se pudo cargar el resumen")
+                    }
+                }
         }
     }
 }

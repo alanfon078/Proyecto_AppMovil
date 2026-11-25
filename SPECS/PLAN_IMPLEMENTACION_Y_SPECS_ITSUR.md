@@ -136,34 +136,34 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 #### Tasks de `F07`
 
-- [ ] **F07-01 — Eliminar botones de demo y backdoors de autenticación (Req 1, Req 3)**
+- [x] **F07-01 — Eliminar botones de demo y backdoors de autenticación (Req 1, Req 3)**
   - Retirar los botones `"Demo Alumno"` y `"Demo Escolar"` de `LoginScreen.kt` y los parámetros `onDemoAspirante` / `onDemoEscolar` de `LoginContent`.
   - Eliminar `setDemoAspirante()` y `setDemoEscolar()` de `LoginViewModel.kt`.
   - Eliminar el método `loginDemo()` y el fallback silencioso en `IOException` de `InscripcionesRepositoryImpl.kt` para que cualquier error de red o credenciales se propague de forma real al usuario.
   - Eliminar en `server/src/app.js` la validación backdoor (`contrasena === 'admin123' || 'itsur2026' || '123456'`) y el fallback que autentica usuarios inexistentes cuando falla la consulta MySQL.
 
-- [ ] **F07-02 — Forzar modo claro institucional y cambiar texto a negro `#000000` (Req 2)**
+- [x] **F07-02 — Forzar modo claro institucional y cambiar texto a negro `#000000` (Req 2)**
   - Modificar `Theme.kt` para fijar `darkTheme: Boolean = false` y `dynamicColor: Boolean = false` (ignorando `isSystemInDarkTheme()`), evitando inversiones indeseadas en dispositivos con tema oscuro.
   - Actualizar `Color.kt` (`ItsurOnSurface`, `ItsurVinoOscuro`, `ItsurOnSurfaceVariant`, `onBackgroundLight`, `onSurfaceLight`, `onSurfaceVariantLight`, `onPrimaryContainerLight`, `onSecondaryContainerLight`) a negro puro `Color(0xFF000000)` para todos los textos sobre fondos claros, tarjetas blancas/azules pastel e inputs.
   - Ajustar `ItsurComponents.kt` (`ItsurTextField`, `OptionCard`, `EmptyState`, `StatusChip` — reemplazando `Color(0xFF616161)`) y todas las pantallas Compose (incluyendo `Color(0xFF757575)` en `StatusScreen.kt` y textos con `ItsurOutline` en `NotificationsScreen.kt` y `AdminFechasScreen.kt`) para asegurar `focusedTextColor = Color.Black`, `unfocusedTextColor = Color.Black`, textos/etiquetas en `#000000` sobre fondos claros, conservando `Color.White` únicamente sobre fondos oscuros (`ItsurCiruela #1E3A5F`, botones primarios/semánticos oscuros y badges oscuros).
 
-- [ ] **F07-03 — Integrar logo oficial del ITSUR en Splash, Login e ícono launcher (Req 19)**
-  - Procesar la imagen oficial proporcionada (`media_1795565098639_56f2bbca.jpg`, verificada en `710×572 px`, relación rectangular `~1.24:1`): incorporarla como drawable `app/src/main/res/drawable/logo_itsur.png` (o `.jpg` optimizado) y generar además una versión centrada sobre lienzo cuadrado `1:1` con margen de seguridad (`~22%` de padding) para evitar recortes en el círculo seguro (`66×66 dp` dentro de `108×108 dp`) del Adaptive Icon y del Splash Screen de Android 12+.
+- [x] **F07-03 — Integrar logo oficial del ITSUR en Splash, Login e ícono launcher (Req 19)**
+  - Procesar la imagen oficial proporcionada (`Logo_Itsur.png`, proporcionada durante F07 en `266×218 px`): incorporarla como drawable `app/src/main/res/drawable/logo_itsur.png` (o `.jpg` optimizado) y generar además una versión centrada sobre lienzo cuadrado `1:1` con margen de seguridad (`~22%` de padding) para evitar recortes en el círculo seguro (`66×66 dp` dentro de `108×108 dp`) del Adaptive Icon y del Splash Screen de Android 12+.
   - Reemplazar `Icons.Default.School` en `LoginScreen.kt` por `Image(painter = painterResource(R.drawable.logo_itsur), contentScale = ContentScale.Fit, ...)` dentro del encabezado institucional.
   - Configurar Splash Screen inicial usando `androidx.core:core-splashscreen` en `gradle/libs.versions.toml`, `app/build.gradle.kts`, `res/values/themes.xml` (`Theme.App.Starting`) e invocación `installSplashScreen()` en `MainActivity.kt` mostrando el logo oficial del ITSUR al arrancar la app.
   - Actualizar los recursos adaptativos del ícono launcher (`mipmap-*/ic_launcher*` e `ic_launcher_foreground`) con el logo del ITSUR centrado en zona segura.
 
-- [ ] **F07-04 — Separar Estado y Municipio en campos de texto libre en Registro y Mi Perfil (Req 11)**
+- [x] **F07-04 — Separar Estado y Municipio en campos de texto libre en Registro y Mi Perfil (Req 11)**
   - **Registro (`RegisterScreen.kt` / `RegisterViewModel.kt`):** Eliminar la lista hardcodeada `municipiosGto`, el `ExposedDropdownMenuBox` de municipio y los valores precargados `estado = "Guanajuato"` / `municipio = "Uriangato"` en `RegisterUiState`; reemplazar por dos `ItsurTextField` independientes y obligatorios: `"Estado de Residencia"` y `"Municipio de Residencia"` (inicializados en `""`, con `onEstadoChange`, `onMunicipioChange`, `errorEstado` y `errorMunicipio`).
   - **Perfil (`ProfileScreen.kt` / `ProfileViewModel.kt`):** Separar el campo de residencia en `Dirección (calle y colonia)`, `Municipio` y `Estado` tanto en modo lectura (`DatoItem`) como en modo edición (`ItsurTextField`), mostrando también estos datos en `AdminAspiranteDetailScreen.kt`.
   - **Modelo, Room, API y BD:** Agregar `estadoResidencia: String` y `municipioResidencia: String` en `Aspirante`, `AspiranteEntity`, `RegisterRequestDto` y `AspiranteDto`; retirar la dependencia de `idEstado = 11` / `idMunicipio = 1` en `InscripcionesRepositoryImpl.kt`, los `COALESCE(..., 'Guanajuato'/'Uriangato')` de `server/src/app.js`, los endpoints obsoletos `GET /catalogos/estados` y `GET /catalogos/municipios` (junto con `EstadoEntity`/`MunicipioEntity`), y actualizar `server/database/schema.sql` + `server/src/db.js` añadiendo `estado_residencia VARCHAR(100) NULL` y `municipio_residencia VARCHAR(120) NULL` en `aspirantes` (dejando `id_estado`/`id_municipio` opcionales o retirando dichas FKs y semillas fijas).
 
-- [ ] **F07-05 — Regla de contraseña mínimo 8 caracteres en App y API (Req 12, Req 18)**
+- [x] **F07-05 — Regla de contraseña mínimo 8 caracteres en App y API (Req 12, Req 18)**
   - Actualizar etiqueta y validación en `RegisterScreen.kt` / `RegisterViewModel.kt` a `contrasena.length < 8` (`"La contraseña debe tener mínimo 8 caracteres"`).
   - Actualizar etiqueta y validación en `ProfileScreen.kt` / `ProfileViewModel.kt` a mínimo 8 caracteres y conectar `cambiarPassword()` con el nuevo endpoint real `PATCH /api/v1/auth/password` (validando contraseña actual con `bcrypt` en servidor).
   - Aplicar validación estricta de mínimo 8 caracteres en `POST /api/v1/auth/register` y `PATCH /api/v1/auth/password` dentro de `server/src/app.js`.
 
-- [ ] **F07-06 — Actualizar línea de tiempo en Estatus de Inscripción (Req 13)**
+- [x] **F07-06 — Actualizar línea de tiempo en Estatus de Inscripción (Req 13)**
   - En `StatusScreen.kt`, eliminar el paso `"4. Pago de Inscripción Acreditado"` y reemplazar el antiguo paso 5 por `"4. Documentos aprobados"`, dejando la línea de tiempo con 4 etapas:
     1. `1. Registro de Aspirante`
     2. `2. Carga de Documentos`
@@ -172,16 +172,16 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
   - En `StatusViewModel.kt`, eliminar toda llamada a `repository.getComprobantePago()` y calcular `etapaActual` exclusivamente con base en el estado real del aspirante y de los 4 documentos obligatorios (`etapaActual = 4` cuando `estadoInscripcion == ACEPTADO`, es decir, `'documentacion_aprobada'` dictaminada por Control Escolar tras aprobar 4/4 documentos).
   - En `HomeScreen.kt`, actualizar la descripción de la tarjeta `"Carga de Documentos"` para reflejar los **4 documentos obligatorios** (`Acta, CURP, Certificado y Comprobante de Domicilio`).
 
-- [ ] **F07-07 — Eliminar completamente Comprobante de Pago y tablas/restos obsoletos (Req 14)**
+- [x] **F07-07 — Eliminar completamente Comprobante de Pago y tablas/restos obsoletos (Req 14)**
   - **Android:** Eliminar `PaymentScreen.kt`, `PaymentViewModel.kt`, `ComprobantePago.kt`, `ComprobantePagoEntity.kt`, `ComprobantePagoDao.kt`, `PagoDto.kt`; remover `Screen.Payment`, `Screen.CredentialPhoto` y `Screen.Reglamento` de `Screen.kt`; quitar la tarjeta `"Comprobante de Pago"` y callback `onNavigateToPayment` de `HomeScreen.kt` y `AppNavHost.kt`; eliminar `TipoDocumento.COMPROBANTE_PAGO` de `Documento.kt`; retirar los restos `reglamentoFirmado`, `isReglamentoFirmado()` y `firmarReglamento()` de `InscripcionesRepository.kt` e `InscripcionesRepositoryImpl.kt`; limpiar referencias en `AppDatabase.kt`, `AppContainer.kt`, `AppViewModelProvider.kt` e `InscripcionesApiService.kt`.
   - **Backend (`server/src/app.js`):** Eliminar `db.pagoActual`, rutas `GET /api/v1/aspirantes/me/pago` y `POST /api/v1/aspirantes/me/pago`, y la fecha de ejemplo de pago.
   - **Base de Datos (`server/database/schema.sql`):** Eliminar las tablas `pagos` y `firmas_reglamento`, y retirar `'pago'` del `ENUM` de `notificaciones.tipo`.
 
-- [ ] **F07-08 — Eliminar botón de Cerrar Sesión duplicado en Menú Principal del Alumno y conectar logout real (Req 8 — complemento)**
+- [x] **F07-08 — Eliminar botón de Cerrar Sesión duplicado en Menú Principal del Alumno y conectar logout real (Req 8 — complemento)**
   - En `HomeScreen.kt`, conservar **un único** botón/acción de cierre de sesión (el ícono en `ItsurTopBar` o el botón inferior, retirando el duplicado).
   - Corregir el callback `logout` en `AppNavHost.kt` (actualmente solo navega a `Screen.Login`) para que ejecute `repository.logout()` (revocando refresh token en API, limpiando `SessionManager`, purgando todas las tablas Room — incluida `preguntas_dudas` — y cancelando trabajos `WorkManager` del usuario anterior) antes de navegar a `LoginScreen`.
 
-- [ ] **F07-09 — Eliminar todas las partes hardcodeadas, alinear contratos DTO y conectar procesos con API + MySQL (Req 3, Req 18)**
+- [x] **F07-09 — Eliminar todas las partes hardcodeadas, alinear contratos DTO y conectar procesos con API + MySQL (Req 3, Req 18)**
   - **Backend (`server/src/app.js` y `db.js`):**
     - Implementar firma y verificación real de JWT (`jsonwebtoken`) con `accessToken` + `refreshToken` almacenado con hash SHA-256 en la tabla `refresh_tokens`.
     - Crear middlewares `requireAuth` (extrae `req.user = { idUsuario, rol, idAspirante }`) y `requireRole('escolar')`.
@@ -351,14 +351,14 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 | Grupo | Método y Ruta | Roles | Acción / Estado |
 | :--- | :--- | :---: | :--- |
-| **Auth** | `POST /api/v1/auth/login` | Público | Autenticación real con `bcrypt` + JWT firmado (`accessToken`, `refreshToken`). |
-| **Auth** | `POST /api/v1/auth/register` | Público | Registro transaccional en MySQL (`contrasena >= 8`, `estadoResidencia`, `municipioResidencia`). |
+| **Auth** | `POST /api/v1/auth/login` | Público | Autenticación real con `bcrypt` + JWT firmado (`access_token`, `refresh_token`). |
+| **Auth** | `POST /api/v1/auth/register` | Público | Registro transaccional en MySQL (`contrasena >= 8`, `estado_residencia`, `municipio_residencia`). |
 | **Auth** | `POST /api/v1/auth/refresh` | Público | Rotación real contra tabla `refresh_tokens`. |
 | **Auth** | `POST /api/v1/auth/logout` | Autenticado | Revoca refresh token en MySQL. |
 | **Auth** | `PATCH /api/v1/auth/password` | Autenticado | **Nuevo:** Cambio real de contraseña (`>= 8` caracteres) verificando contraseña actual. |
 | **Catálogos** | `GET /api/v1/catalogos/carreras` | Público | Catálogo activo de carreras ITSUR desde MySQL. |
 | **Aspirante** | `GET /api/v1/aspirantes/me` | `aspirante` | Datos del aspirante autenticado (`req.user.idAspirante`). |
-| **Aspirante** | `PUT /api/v1/aspirantes/me` | `aspirante` | Actualiza teléfono, dirección, `estadoResidencia` y `municipioResidencia` en MySQL. |
+| **Aspirante** | `PUT /api/v1/aspirantes/me` | `aspirante` | Actualiza teléfono, dirección, `estado_residencia` y `municipio_residencia` en MySQL. |
 | **Aspirante** | `GET /api/v1/aspirantes/me/resumen` | `aspirante` | Resumen real de documentos (sobre 4 obligatorios) y notificaciones no leídas. |
 | **Documentos** | `GET /api/v1/aspirantes/me/documentos` | `aspirante` | Documentos del aspirante autenticado desde MySQL. |
 | **Documentos** | `POST /api/v1/aspirantes/me/documentos` | `aspirante` | Carga `@Multipart` PDF con verificación SHA-256, guardado en `/uploads` y MySQL. |

@@ -21,11 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyecto_appmovil.model.Aspirante
-import com.example.proyecto_appmovil.model.Documento
 import com.example.proyecto_appmovil.model.EstadoDocumento
 import com.example.proyecto_appmovil.model.EstadoInscripcion
-import com.example.proyecto_appmovil.model.TipoDocumento
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTextField
@@ -51,7 +48,7 @@ fun AdminAspiranteDetailScreen(
         onNavigateBack = onNavigateBack,
         onObservacionesChange = viewModel::onObservacionesChange,
         onValidarDoc = viewModel::validarDocumento,
-        onDictaminar = viewModel::dictaminarAspirante
+        onAprobarAspirante = viewModel::aprobarAspirante
     )
 }
 
@@ -61,7 +58,7 @@ fun AdminAspiranteDetailContent(
     onNavigateBack: () -> Unit,
     onObservacionesChange: (String) -> Unit,
     onValidarDoc: (String, Boolean) -> Unit,
-    onDictaminar: (Boolean) -> Unit
+    onAprobarAspirante: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -127,7 +124,7 @@ fun AdminAspiranteDetailContent(
                                     )
                                 }
                             }
-                            StatusChip(status = asp?.estadoInscripcion?.name ?: "EN_REVISION")
+                            asp?.let { StatusChip(status = it.estadoInscripcion.name) }
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -138,13 +135,18 @@ fun AdminAspiranteDetailContent(
                         DatoItem(label = "CURP", valor = asp?.curp ?: "")
                         DatoItem(label = "Correo Institucional", valor = asp?.email ?: "")
                         DatoItem(label = "Teléfono", valor = asp?.telefono ?: "")
-                        DatoItem(label = "Promedio Bachillerato", valor = "${asp?.promedioBachillerato ?: 0.0}")
-                        DatoItem(label = "Dirección", valor = asp?.direccion ?: "")
+                        DatoItem(label = "Promedio Bachillerato", valor = asp?.promedioBachillerato?.toString().orEmpty())
+                        DatoItem(label = "Dirección (calle y colonia)", valor = asp?.direccion.orEmpty())
+                        DatoItem(label = "Municipio", valor = asp?.municipioResidencia.orEmpty())
+                        DatoItem(label = "Estado", valor = asp?.estadoResidencia.orEmpty())
                     }
                 }
             }
 
             item {
+                if (uiState.isLoading) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
                 if (uiState.mensajeExito != null) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = StatusAprobadoBg),
@@ -153,7 +155,7 @@ fun AdminAspiranteDetailContent(
                     ) {
                         Text(
                             text = uiState.mensajeExito,
-                            color = StatusAprobado,
+                            color = ItsurOnSurface,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(14.dp)
@@ -175,7 +177,17 @@ fun AdminAspiranteDetailContent(
                 )
             }
 
-            items(uiState.documentos, key = { it.id }) { doc ->
+            if (uiState.documentos.any { it.estado == EstadoDocumento.SUBIDO }) {
+                item {
+                    ItsurTextField(
+                        value = uiState.observacionesInput,
+                        onValueChange = onObservacionesChange,
+                        label = "Observaciones para el documento"
+                    )
+                }
+            }
+
+            items(uiState.documentos, key = { it.tipo.name }) { doc ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(14.dp),
@@ -230,7 +242,8 @@ fun AdminAspiranteDetailContent(
                         ) {
                             Button(
                                 onClick = { onValidarDoc(doc.id, true) },
-                                colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado),
+                                enabled = !uiState.isLoading && doc.estado == EstadoDocumento.SUBIDO,
+                                colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado, disabledContentColor = Color.Black),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -240,7 +253,8 @@ fun AdminAspiranteDetailContent(
                             }
                             Button(
                                 onClick = { onValidarDoc(doc.id, false) },
-                                colors = ButtonDefaults.buttonColors(containerColor = StatusRechazado),
+                                enabled = !uiState.isLoading && doc.estado == EstadoDocumento.SUBIDO,
+                                colors = ButtonDefaults.buttonColors(containerColor = StatusRechazado, disabledContentColor = Color.Black),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -269,35 +283,22 @@ fun AdminAspiranteDetailContent(
                             color = ItsurVinoOscuro
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        ItsurTextField(
-                            value = uiState.observacionesInput,
-                            onValueChange = onObservacionesChange,
-                            label = "Observaciones oficiales (obligatorias para rechazo)"
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
+                        if (uiState.aspirante?.estadoInscripcion == EstadoInscripcion.ACEPTADO) {
+                            Text("El trámite está aprobado", style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            Text(
+                                "Aprueba los cuatro documentos obligatorios para emitir el dictamen.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
                             Button(
-                                onClick = { onDictaminar(true) },
-                                colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado),
+                                onClick = onAprobarAspirante,
+                                enabled = uiState.puedeAprobar && !uiState.isLoading,
+                                colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado, disabledContentColor = Color.Black),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(46.dp)
+                                modifier = Modifier.fillMaxWidth().height(46.dp)
                             ) {
                                 Text("Aprobar Trámite", fontWeight = FontWeight.Bold)
-                            }
-                            Button(
-                                onClick = { onDictaminar(false) },
-                                colors = ButtonDefaults.buttonColors(containerColor = StatusRechazado),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(46.dp)
-                            ) {
-                                Text("Rechazar Trámite", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -308,7 +309,7 @@ fun AdminAspiranteDetailContent(
                 OutlinedButton(
                     onClick = onNavigateBack,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ItsurCiruela),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
@@ -329,27 +330,11 @@ fun AdminAspiranteDetailContent(
 fun AdminAspiranteDetailPreview() {
     AppTheme {
         AdminAspiranteDetailContent(
-            uiState = AdminAspiranteDetailUiState(
-                aspirante = Aspirante(
-                    nombreCompleto = "Dafne Guadalupe Orozco Aguirre",
-                    folioAspirante = "ITSUR-2026-0042",
-                    carrera = "Ing. Sistemas Computacionales",
-                    curp = "OOAD030515HGTRRN01",
-                    email = "aspirante@itsur.edu.mx",
-                    telefono = "4451234567",
-                    promedioBachillerato = 9.4,
-                    direccion = "Uriangato, Gto.",
-                    estadoInscripcion = EstadoInscripcion.EN_REVISION
-                ),
-                documentos = listOf(
-                    Documento("1", TipoDocumento.ACTA_NACIMIENTO, "acta_nacimiento.pdf", estado = EstadoDocumento.VALIDADO),
-                    Documento("2", TipoDocumento.CURP, "curp_certificada.pdf", estado = EstadoDocumento.SUBIDO)
-                )
-            ),
+            uiState = AdminAspiranteDetailUiState(),
             onNavigateBack = {},
             onObservacionesChange = {},
             onValidarDoc = { _, _ -> },
-            onDictaminar = {}
+            onAprobarAspirante = {}
         )
     }
 }

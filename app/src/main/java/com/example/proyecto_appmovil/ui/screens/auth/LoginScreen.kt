@@ -1,5 +1,6 @@
 package com.example.proyecto_appmovil.ui.screens.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,12 +11,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -23,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyecto_appmovil.R
 import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTextField
@@ -42,8 +45,6 @@ fun LoginScreen(
         uiState = uiState,
         onUsuarioChange = viewModel::onUsuarioChange,
         onContrasenaChange = viewModel::onContrasenaChange,
-        onDemoAspirante = viewModel::setDemoAspirante,
-        onDemoEscolar = viewModel::setDemoEscolar,
         onLoginClick = {
             viewModel.login { rol ->
                 if (rol == "escolar") {
@@ -62,8 +63,6 @@ fun LoginContent(
     uiState: LoginUiState,
     onUsuarioChange: (String) -> Unit,
     onContrasenaChange: (String) -> Unit,
-    onDemoAspirante: () -> Unit,
-    onDemoEscolar: () -> Unit,
     onLoginClick: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
@@ -84,7 +83,6 @@ fun LoginContent(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Banner Institucional Rosa Pastel
             Card(
                 colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
                 shape = RoundedCornerShape(20.dp),
@@ -98,11 +96,13 @@ fun LoginContent(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.School,
-                        contentDescription = null,
-                        tint = ItsurVinoOscuro,
-                        modifier = Modifier.size(44.dp)
+                    Image(
+                        painter = painterResource(R.drawable.logo_itsur),
+                        contentDescription = "Logo del ITSUR",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(width = 126.dp, height = 104.dp)
+                            .clip(RoundedCornerShape(12.dp))
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -130,29 +130,6 @@ fun LoginContent(
 
             if (uiState.errorMessage != null) {
                 ErrorBanner(mensaje = uiState.errorMessage ?: "")
-            }
-
-            // Selector rápido de demostración
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onDemoAspirante,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("Demo Alumno", fontSize = 12.sp)
-                }
-                OutlinedButton(
-                    onClick = onDemoEscolar,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("Demo Escolar", fontSize = 12.sp)
-                }
             }
 
             ItsurTextField(
@@ -200,7 +177,7 @@ fun LoginContent(
             TextButton(onClick = onNavigateToRegister) {
                 Text(
                     text = "¿No tienes cuenta? Regístrate aquí",
-                    color = ItsurCiruela,
+                    color = ItsurOnSurface,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
                 )
@@ -216,11 +193,9 @@ fun LoginContent(
 fun LoginScreenPreview() {
     AppTheme {
         LoginContent(
-            uiState = LoginUiState(usuario = "aspirante@itsur.edu.mx"),
+            uiState = LoginUiState(),
             onUsuarioChange = {},
             onContrasenaChange = {},
-            onDemoAspirante = {},
-            onDemoEscolar = {},
             onLoginClick = {},
             onNavigateToRegister = {}
         )
