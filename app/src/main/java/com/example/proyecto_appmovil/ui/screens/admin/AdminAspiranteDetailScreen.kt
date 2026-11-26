@@ -3,7 +3,9 @@ package com.example.proyecto_appmovil.ui.screens.admin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -12,7 +14,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,10 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.proyecto_appmovil.model.EstadoDocumento
 import com.example.proyecto_appmovil.model.EstadoInscripcion
-import com.example.proyecto_appmovil.ui.AppViewModelProvider
 import com.example.proyecto_appmovil.ui.components.ErrorBanner
 import com.example.proyecto_appmovil.ui.components.ItsurTopBar
 import com.example.proyecto_appmovil.ui.components.StatusChip
@@ -31,63 +31,55 @@ import com.example.proyecto_appmovil.ui.screens.profile.DatoItem
 import com.example.proyecto_appmovil.ui.theme.*
 
 @Composable
-fun AdminAspiranteDetailScreen(
-    aspiranteId: String,
+internal fun AdminAspiranteDetailScaffold(
     onNavigateBack: () -> Unit,
-    viewModel: AdminAspiranteDetailViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    content: @Composable (Modifier) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(aspiranteId) {
-        viewModel.cargarDetalle(aspiranteId)
-    }
-
-    AdminAspiranteDetailContent(
-        uiState = uiState,
-        onNavigateBack = onNavigateBack,
-        onObservacionesChange = viewModel::onObservacionesChange,
-        onValidarDoc = viewModel::validarDocumento,
-        onAprobarAspirante = viewModel::aprobarAspirante,
-        onPrevisualizarPdf = viewModel::descargarPdf
-    )
-
-    uiState.pdfPreviewFile?.let { file ->
-        PdfViewerDialog(file = file, onDismiss = viewModel::cerrarPdfPreview)
+    Scaffold(
+        topBar = {
+            ItsurTopBar(title = "Expediente del Aspirante", onNavigateBack = onNavigateBack)
+        }
+    ) { padding ->
+        content(Modifier.padding(padding))
     }
 }
 
 @Composable
-fun AdminAspiranteDetailContent(
+internal fun AdminAspiranteDetailContent(
     uiState: AdminAspiranteDetailUiState,
-    onNavigateBack: () -> Unit,
-    onObservacionesChange: (String) -> Unit,
+    onAbrirRechazo: (String) -> Unit,
     onValidarDoc: (String, Boolean) -> Unit,
     onAprobarAspirante: () -> Unit,
-    onPrevisualizarPdf: (String, String?) -> Unit
+    onPrevisualizarPdf: (String, String?) -> Unit,
+    modifier: Modifier = Modifier,
+    onNavigateBack: (() -> Unit)? = null,
+    listState: LazyListState = rememberLazyListState()
 ) {
-    var documentoARechazar by remember { mutableStateOf<com.example.proyecto_appmovil.model.Documento?>(null) }
-
-    Scaffold(
-        topBar = {
-            ItsurTopBar(
-                title = "Expediente del Aspirante",
-                onNavigateBack = onNavigateBack
-            )
+    val asp = uiState.aspirante
+    LazyColumn(
+        state = listState,
+        modifier = modifier
+            .fillMaxSize()
+            .background(ItsurOffWhite)
+            .padding(horizontal = if (onNavigateBack == null) 12.dp else 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (onNavigateBack == null) {
+            item {
+                Text(
+                    "Expediente del Aspirante",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = ItsurVinoOscuro,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
         }
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(ItsurOffWhite)
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+
+        if (asp != null) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Card principal de aspirante
-                val asp = uiState.aspirante
                 Card(
                     colors = CardDefaults.cardColors(containerColor = ItsurRosaPastel),
                     shape = RoundedCornerShape(20.dp),
@@ -119,61 +111,63 @@ fun AdminAspiranteDetailContent(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = asp?.nombreCompleto ?: "Aspirante",
+                                        text = asp.nombreCompleto,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = ItsurVinoOscuro
                                     )
                                     Text(
-                                        text = "Folio: ${asp?.folioAspirante ?: ""}",
+                                        text = "Folio: ${asp.folioAspirante}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = ItsurOnSurfaceVariant
                                     )
                                 }
                             }
-                            asp?.let { StatusChip(status = it.estadoInscripcion.name) }
+                            StatusChip(status = asp.estadoInscripcion.name)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = ItsurVinoOscuro.copy(alpha = 0.2f))
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        DatoItem(label = "Carrera de Selección", valor = asp?.carrera ?: "")
-                        DatoItem(label = "CURP", valor = asp?.curp ?: "")
-                        DatoItem(label = "Correo Institucional", valor = asp?.email ?: "")
-                        DatoItem(label = "Teléfono", valor = asp?.telefono ?: "")
-                        DatoItem(label = "Dirección (calle y colonia)", valor = asp?.direccion.orEmpty())
-                        DatoItem(label = "Municipio", valor = asp?.municipioResidencia.orEmpty())
-                        DatoItem(label = "Estado", valor = asp?.estadoResidencia.orEmpty())
+                        DatoItem(label = "Carrera de Selección", valor = asp.carrera)
+                        DatoItem(label = "CURP", valor = asp.curp)
+                        DatoItem(label = "Correo Institucional", valor = asp.email)
+                        DatoItem(label = "Teléfono", valor = asp.telefono)
+                        DatoItem(label = "Dirección (calle y colonia)", valor = asp.direccion)
+                        DatoItem(label = "Municipio", valor = asp.municipioResidencia)
+                        DatoItem(label = "Estado", valor = asp.estadoResidencia)
                     }
                 }
             }
+        }
 
-            item {
-                if (uiState.isLoading) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-                if (uiState.mensajeExito != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = StatusAprobadoBg),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = uiState.mensajeExito,
-                            color = ItsurOnSurface,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(14.dp)
-                        )
-                    }
-                }
-
-                if (uiState.mensajeError != null) {
-                    ErrorBanner(mensaje = uiState.mensajeError)
+        item {
+            if (uiState.ocupado) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            if (uiState.mensajeExito != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = StatusAprobadoBg),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = uiState.mensajeExito,
+                        color = ItsurOnSurface,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(14.dp)
+                    )
                 }
             }
 
+            if (uiState.mensajeError != null) {
+                ErrorBanner(mensaje = uiState.mensajeError)
+            }
+        }
+
+        if (asp != null) {
             item {
                 Text(
                     text = "Documentación Digital (${uiState.documentos.size})",
@@ -235,7 +229,7 @@ fun AdminAspiranteDetailContent(
                         if (doc.nombreArchivo != null && doc.id.isNotBlank()) {
                             OutlinedButton(
                                 onClick = { onPrevisualizarPdf(doc.id, doc.nombreArchivo) },
-                                enabled = !uiState.isLoading && !uiState.isDownloadingPdf,
+                                enabled = !uiState.ocupado && !uiState.isDownloadingPdf,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
@@ -252,7 +246,7 @@ fun AdminAspiranteDetailContent(
                         ) {
                             Button(
                                 onClick = { onValidarDoc(doc.id, true) },
-                                enabled = !uiState.isLoading && doc.estado == EstadoDocumento.SUBIDO,
+                                enabled = !uiState.ocupado && doc.estado == EstadoDocumento.SUBIDO,
                                 colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado, disabledContentColor = Color.Black),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1f)
@@ -262,11 +256,8 @@ fun AdminAspiranteDetailContent(
                                 Text("Aprobar", fontSize = 12.sp)
                             }
                             Button(
-                                onClick = {
-                                    onObservacionesChange("")
-                                    documentoARechazar = doc
-                                },
-                                enabled = !uiState.isLoading && doc.estado == EstadoDocumento.SUBIDO,
+                                onClick = { onAbrirRechazo(doc.id) },
+                                enabled = !uiState.ocupado && doc.estado == EstadoDocumento.SUBIDO,
                                 colors = ButtonDefaults.buttonColors(containerColor = StatusRechazado, disabledContentColor = Color.Black),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1f)
@@ -296,7 +287,7 @@ fun AdminAspiranteDetailContent(
                             color = ItsurVinoOscuro
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        if (uiState.aspirante?.estadoInscripcion == EstadoInscripcion.ACEPTADO) {
+                        if (asp.estadoInscripcion == EstadoInscripcion.ACEPTADO) {
                             Text("El trámite está aprobado", style = MaterialTheme.typography.bodySmall)
                         } else {
                             val indicacion = if (uiState.puedeAprobar) {
@@ -311,7 +302,7 @@ fun AdminAspiranteDetailContent(
                             Spacer(modifier = Modifier.height(14.dp))
                             Button(
                                 onClick = onAprobarAspirante,
-                                enabled = uiState.puedeAprobar && !uiState.isLoading,
+                                enabled = uiState.puedeAprobar && !uiState.ocupado,
                                 colors = ButtonDefaults.buttonColors(containerColor = StatusAprobado, disabledContentColor = Color.Black),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth().height(46.dp)
@@ -321,9 +312,11 @@ fun AdminAspiranteDetailContent(
                         }
                     }
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
+        if (onNavigateBack != null) {
+            item {
                 OutlinedButton(
                     onClick = onNavigateBack,
                     shape = RoundedCornerShape(12.dp),
@@ -336,39 +329,48 @@ fun AdminAspiranteDetailContent(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Regresar al Panel", fontWeight = FontWeight.Bold)
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
 
-        documentoARechazar?.let { documento ->
-            AlertDialog(
-                onDismissRequest = { documentoARechazar = null },
-                title = { Text("Rechazar ${documento.tipo.titulo}") },
-                text = {
-                    OutlinedTextField(
-                        value = uiState.observacionesInput,
-                        onValueChange = onObservacionesChange,
-                        label = { Text("Observaciones obligatorias") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            if (uiState.observacionesInput.trim().isNotEmpty()) {
-                                onValidarDoc(documento.id, false)
-                                documentoARechazar = null
-                            }
-                        },
-                        enabled = uiState.observacionesInput.trim().isNotEmpty() && !uiState.isLoading
-                    ) { Text("Rechazar documento") }
-                },
-                dismissButton = {
-                    OutlinedButton(onClick = { documentoARechazar = null }) { Text("Cancelar", color = Color.Black) }
-                }
-            )
-        }
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+internal fun AdminAspiranteDetailDialogs(
+    uiState: AdminAspiranteDetailUiState,
+    onObservacionesChange: (String) -> Unit,
+    onValidarDoc: (String, Boolean) -> Unit,
+    onCerrarRechazo: () -> Unit,
+    onCerrarPdf: () -> Unit
+) {
+    val documento = uiState.documentos.firstOrNull { it.id == uiState.documentoARechazarId }
+    if (documento != null) {
+        AlertDialog(
+            onDismissRequest = onCerrarRechazo,
+            title = { Text("Rechazar ${documento.tipo.titulo}") },
+            text = {
+                OutlinedTextField(
+                    value = uiState.observacionesInput,
+                    onValueChange = onObservacionesChange,
+                    label = { Text("Observaciones obligatorias") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onValidarDoc(documento.id, false) },
+                    enabled = uiState.observacionesInput.isNotBlank() && uiState.puedeRevisar(documento.id)
+                ) { Text("Rechazar documento") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = onCerrarRechazo) { Text("Cancelar", color = Color.Black) }
+            }
+        )
+    }
+
+    uiState.pdfPreviewFile?.let { file ->
+        PdfViewerDialog(file = file, onDismiss = onCerrarPdf)
     }
 }
 
@@ -376,13 +378,16 @@ fun AdminAspiranteDetailContent(
 @Composable
 fun AdminAspiranteDetailPreview() {
     AppTheme {
-        AdminAspiranteDetailContent(
-            uiState = AdminAspiranteDetailUiState(),
-            onNavigateBack = {},
-            onObservacionesChange = {},
-            onValidarDoc = { _, _ -> },
-            onAprobarAspirante = {},
-            onPrevisualizarPdf = { _, _ -> }
-        )
+        AdminAspiranteDetailScaffold(onNavigateBack = {}) { modifier ->
+            AdminAspiranteDetailContent(
+                uiState = AdminAspiranteDetailUiState(),
+                onAbrirRechazo = {},
+                onValidarDoc = { _, _ -> },
+                onAprobarAspirante = {},
+                onPrevisualizarPdf = { _, _ -> },
+                modifier = modifier,
+                onNavigateBack = {}
+            )
+        }
     }
 }

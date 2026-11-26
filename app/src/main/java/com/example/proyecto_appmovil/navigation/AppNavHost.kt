@@ -2,12 +2,15 @@ package com.example.proyecto_appmovil.navigation
 
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -15,7 +18,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.proyecto_appmovil.InscripcionesApp
-import com.example.proyecto_appmovil.ui.screens.admin.AdminAspiranteDetailScreen
+import com.example.proyecto_appmovil.ui.AppViewModelProvider
+import com.example.proyecto_appmovil.ui.screens.admin.AdminAspiranteDetailViewModel
 import com.example.proyecto_appmovil.ui.screens.admin.AdminFechasScreen
 import com.example.proyecto_appmovil.ui.screens.admin.AdminHomeScreen
 import com.example.proyecto_appmovil.ui.screens.admin.AdminBroadcastScreen
@@ -32,8 +36,10 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavHost(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    isAdminExpanded: Boolean = false
 ) {
+    val adminExpanded by rememberUpdatedState(isAdminExpanded)
     val app = LocalContext.current.applicationContext as InscripcionesApp
     val scope = rememberCoroutineScope()
     var cerrandoSesion by remember { mutableStateOf(false) }
@@ -143,16 +149,15 @@ fun AppNavHost(
 
         composable(Screen.AdminHome.route) {
             AdminHomeScreen(
+                isExpanded = adminExpanded,
                 onNavigateToRoute = navigateToAdminRoute,
-                onNavigateToAspiranteDetail = { aspiranteId ->
-                    navController.navigate(Screen.AdminAspiranteDetail.createRoute(aspiranteId))
-                },
                 onLogout = logout
             )
         }
 
         composable(Screen.AdminFechas.route) {
             AdminFechasScreen(
+                isExpanded = adminExpanded,
                 onNavigateToRoute = navigateToAdminRoute,
                 onLogout = logout
             )
@@ -160,6 +165,7 @@ fun AppNavHost(
 
         composable(Screen.AdminQuestions.route) {
             AdminQuestionsScreen(
+                isExpanded = adminExpanded,
                 onNavigateToRoute = navigateToAdminRoute,
                 onLogout = logout
             )
@@ -167,6 +173,7 @@ fun AppNavHost(
 
         composable(Screen.AdminBroadcast.route) {
             AdminBroadcastScreen(
+                isExpanded = adminExpanded,
                 onNavigateToRoute = navigateToAdminRoute,
                 onLogout = logout
             )
@@ -176,11 +183,20 @@ fun AppNavHost(
             route = Screen.AdminAspiranteDetail.route,
             arguments = listOf(navArgument("aspiranteId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val aspiranteId = backStackEntry.arguments?.getString("aspiranteId") ?: ""
-            AdminAspiranteDetailScreen(
-                aspiranteId = aspiranteId,
-                onNavigateBack = { navController.popBackStack() }
+            // Recupera expedientes abiertos en la ruta anterior del panel.
+            val adminHomeEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.AdminHome.route)
+            }
+            val detailViewModel: AdminAspiranteDetailViewModel = viewModel(
+                viewModelStoreOwner = adminHomeEntry,
+                factory = AppViewModelProvider.Factory
             )
+            LaunchedEffect(backStackEntry) {
+                if (navController.currentBackStackEntry == backStackEntry) {
+                    detailViewModel.seleccionarAspirante(backStackEntry.arguments?.getString("aspiranteId"))
+                    navController.popBackStack()
+                }
+            }
         }
     }
 }

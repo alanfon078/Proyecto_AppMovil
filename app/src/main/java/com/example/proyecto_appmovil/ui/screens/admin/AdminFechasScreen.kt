@@ -62,6 +62,7 @@ import java.time.ZoneOffset
 fun AdminFechasScreen(
     onNavigateToRoute: (String) -> Unit,
     onLogout: () -> Unit,
+    isExpanded: Boolean = false,
     viewModel: AdminFechasViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -69,6 +70,7 @@ fun AdminFechasScreen(
         uiState = uiState,
         onNavigateToRoute = onNavigateToRoute,
         onLogout = onLogout,
+        isExpanded = isExpanded,
         onAbrirDialogo = viewModel::abrirDialogoNuevaFecha,
         onAbrirEditar = viewModel::abrirDialogoEditar,
         onEliminar = viewModel::eliminarFecha,
@@ -95,7 +97,8 @@ fun AdminFechasContent(
     onDescripcionChange: (String) -> Unit,
     onFechaLimiteChange: (String) -> Unit,
     onTipoChange: (TipoFechaImportante) -> Unit,
-    onGuardar: () -> Unit
+    onGuardar: () -> Unit,
+    isExpanded: Boolean = false
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var fechaPorEliminar by remember { mutableStateOf<FechaImportante?>(null) }
@@ -105,7 +108,8 @@ fun AdminFechasContent(
         title = "Fechas Límite",
         currentRoute = Screen.AdminFechas.route,
         onNavigateToRoute = onNavigateToRoute,
-        onLogout = onLogout
+        onLogout = onLogout,
+        isExpanded = isExpanded
     ) { innerPadding ->
         Column(
             modifier = Modifier

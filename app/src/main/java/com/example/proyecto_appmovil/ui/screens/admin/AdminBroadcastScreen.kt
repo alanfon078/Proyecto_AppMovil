@@ -19,6 +19,7 @@ import com.example.proyecto_appmovil.ui.components.ItsurTextField
 fun AdminBroadcastScreen(
     onNavigateToRoute: (String) -> Unit,
     onLogout: () -> Unit,
+    isExpanded: Boolean = false,
     viewModel: AdminBroadcastViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -26,7 +27,8 @@ fun AdminBroadcastScreen(
         title = "Aviso General",
         currentRoute = Screen.AdminBroadcast.route,
         onNavigateToRoute = onNavigateToRoute,
-        onLogout = onLogout
+        onLogout = onLogout,
+        isExpanded = isExpanded
     ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp),

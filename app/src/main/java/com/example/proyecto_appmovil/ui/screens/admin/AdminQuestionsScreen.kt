@@ -19,6 +19,7 @@ import com.example.proyecto_appmovil.ui.components.ItsurTextField
 fun AdminQuestionsScreen(
     onNavigateToRoute: (String) -> Unit,
     onLogout: () -> Unit,
+    isExpanded: Boolean = false,
     viewModel: AdminQuestionsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -26,7 +27,8 @@ fun AdminQuestionsScreen(
         title = "Preguntas y Dudas",
         currentRoute = Screen.AdminQuestions.route,
         onNavigateToRoute = onNavigateToRoute,
-        onLogout = onLogout
+        onLogout = onLogout,
+        isExpanded = isExpanded
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

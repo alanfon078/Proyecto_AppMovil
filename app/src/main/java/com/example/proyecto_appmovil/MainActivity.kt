@@ -6,6 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -18,15 +21,18 @@ import com.example.proyecto_appmovil.navigation.Screen
 import com.example.proyecto_appmovil.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         val systemBars = WindowCompat.getInsetsController(window, window.decorView)
         setContent {
             val navController = rememberNavController()
+            val widthSizeClass = calculateWindowSizeClass(this).widthSizeClass
             val entry by navController.currentBackStackEntryAsState()
+            val route = entry?.destination?.route
             SideEffect {
-                systemBars.isAppearanceLightStatusBars = entry == null || entry?.destination?.route == Screen.Login.route
+                systemBars.isAppearanceLightStatusBars = route == null || route == Screen.Login.route
                 systemBars.isAppearanceLightNavigationBars = true
             }
             AppTheme {
@@ -34,7 +40,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavHost(navController)
+                    AppNavHost(
+                        navController = navController,
+                        isAdminExpanded = widthSizeClass == WindowWidthSizeClass.Expanded
+                    )
                 }
             }
         }

@@ -1,6 +1,7 @@
 package com.example.proyecto_appmovil.ui
 
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -53,7 +54,10 @@ object AppViewModelProvider {
             AdminFechasViewModel(inscripcionesApp().container.inscripcionesRepository)
         }
         initializer {
-            AdminAspiranteDetailViewModel(inscripcionesApp().container.inscripcionesRepository)
+            AdminAspiranteDetailViewModel(
+                inscripcionesApp().container.inscripcionesRepository,
+                createSavedStateHandle()
+            )
         }
         initializer {
             StudentQuestionsViewModel(inscripcionesApp().container.inscripcionesRepository)
