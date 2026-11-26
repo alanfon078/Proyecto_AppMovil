@@ -3,7 +3,9 @@ package com.example.proyecto_appmovil.ui.screens.admin
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AdminPanelSettings
@@ -49,11 +51,75 @@ fun AdminDrawerScaffold(
     currentRoute: String,
     onNavigateToRoute: (String) -> Unit,
     onLogout: () -> Unit,
+    isExpanded: Boolean = false,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    val navigate: (String) -> Unit = { route ->
+        if (currentRoute != route) onNavigateToRoute(route)
+    }
+    val screenContent: @Composable ((() -> Unit)?) -> Unit = { onOpenDrawer ->
+        Scaffold(
+            containerColor = ItsurOffWhite,
+            topBar = { ItsurTopBar(title = title, onOpenDrawer = onOpenDrawer) },
+            content = content
+        )
+    }
 
+    if (isExpanded) {
+        PermanentNavigationDrawer(
+            drawerContent = {
+                PermanentDrawerSheet(
+                    modifier = Modifier.width(224.dp),
+                    drawerContainerColor = Color.White,
+                    drawerContentColor = Color.Black
+                ) {
+                    AdminDrawerContent(currentRoute, navigate, onLogout)
+                }
+            }
+        ) {
+            screenContent(null)
+        }
+    } else {
+        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        val scope = rememberCoroutineScope()
+
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerState = drawerState,
+                    drawerContainerColor = Color.White,
+                    drawerContentColor = Color.Black
+                ) {
+                    AdminDrawerContent(
+                        currentRoute = currentRoute,
+                        onNavigateToRoute = { route ->
+                            scope.launch {
+                                drawerState.close()
+                                navigate(route)
+                            }
+                        },
+                        onLogout = {
+                            scope.launch {
+                                drawerState.close()
+                                onLogout()
+                            }
+                        }
+                    )
+                }
+            }
+        ) {
+            screenContent { scope.launch { drawerState.open() } }
+        }
+    }
+}
+
+@Composable
+private fun AdminDrawerContent(
+    currentRoute: String,
+    onNavigateToRoute: (String) -> Unit,
+    onLogout: () -> Unit
+) {
     val itemColors = NavigationDrawerItemDefaults.colors(
         selectedContainerColor = ItsurRosaPastel,
         selectedIconColor = Color.Black,
@@ -63,122 +129,96 @@ fun AdminDrawerScaffold(
         unselectedTextColor = Color.Black
     )
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = Color.White,
-                drawerContentColor = Color.Black
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Cabecera institucional ITSUR
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ItsurCiruela)
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
-                // Cabecera institucional ITSUR
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(ItsurCiruela)
-                        .padding(horizontal = 20.dp, vertical = 24.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.logo_itsur),
-                            contentDescription = "Logo ITSUR",
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White)
-                                .padding(6.dp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_itsur),
+                        contentDescription = "Logo ITSUR",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .padding(6.dp)
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "ITSUR",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
-                        Spacer(modifier = Modifier.width(14.dp))
-                        Column {
-                            Text(
-                                text = "ITSUR",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Control Escolar",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White
-                            )
-                        }
+                        Text(
+                            text = "Control Escolar",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                adminDrawerItems.forEach { item ->
-                    NavigationDrawerItem(
-                        label = {
-                            Text(
-                                text = item.label,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            scope.launch {
-                                drawerState.close()
-                                if (currentRoute != item.route) {
-                                    onNavigateToRoute(item.route)
-                                }
-                            }
-                        },
-                        icon = {
-                            Icon(imageVector = item.icon, contentDescription = null)
-                        },
-                        colors = itemColors,
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                            .height(54.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                Spacer(modifier = Modifier.height(8.dp))
-
+            adminDrawerItems.forEach { item ->
                 NavigationDrawerItem(
                     label = {
                         Text(
-                            text = "Cerrar Sesión",
+                            text = item.label,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                     },
-                    selected = false,
-                    onClick = {
-                        scope.launch {
-                            drawerState.close()
-                            onLogout()
-                        }
-                    },
+                    selected = currentRoute == item.route,
+                    onClick = { onNavigateToRoute(item.route) },
                     icon = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = null
-                        )
+                        Icon(imageVector = item.icon, contentDescription = null)
                     },
                     colors = itemColors,
                     modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                        .height(54.dp)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .heightIn(min = 54.dp)
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
         }
-    ) {
-        Scaffold(
-            containerColor = ItsurOffWhite,
-            topBar = {
-                ItsurTopBar(
-                    title = title,
-                    onOpenDrawer = { scope.launch { drawerState.open() } }
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        NavigationDrawerItem(
+            label = {
+                Text(
+                    text = "Cerrar Sesión",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
                 )
             },
-            content = content
+            selected = false,
+            onClick = onLogout,
+            icon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = null
+                )
+            },
+            colors = itemColors,
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .heightIn(min = 54.dp)
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }

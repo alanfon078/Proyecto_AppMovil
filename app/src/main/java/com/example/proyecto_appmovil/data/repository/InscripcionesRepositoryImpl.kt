@@ -38,6 +38,8 @@ import com.google.gson.JsonParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -327,34 +329,46 @@ class InscripcionesRepositoryImpl(
         if (!response.isSuccessful) throw HttpException(response)
         val body = response.body() ?: throw IllegalStateException("El servidor devolvió un archivo vacío.")
 
-        val previewDir = File(context.cacheDir, "preview_docs").apply {
-            if (!isDirectory && !mkdirs()) {
-                throw IllegalStateException("No se pudo preparar la carpeta temporal para previsualizar el PDF.")
+        body.use { responseBody ->
+            val previewDir = File(context.cacheDir, "preview_docs").apply {
+                if (!isDirectory && !mkdirs()) {
+                    throw IllegalStateException("No se pudo preparar la carpeta temporal para previsualizar el PDF.")
+                }
+            }
+            val safeName = nombreArchivo
+                ?.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                ?.takeIf { it.isNotBlank() }
+                ?.let { if (it.endsWith(".pdf", ignoreCase = true)) it else "$it.pdf" }
+                ?: "documento_$remoteId.pdf"
+            val targetFile = File(previewDir, "${remoteId}_$safeName")
+            val tempFile = File.createTempFile("preview_", ".tmp", previewDir)
+            try {
+                val downloadContext = currentCoroutineContext()
+                val input = responseBody.byteStream()
+                tempFile.outputStream().use { output ->
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    while (true) {
+                        downloadContext.ensureActive()
+                        val bytesRead = input.read(buffer)
+                        if (bytesRead == -1) break
+                        output.write(buffer, 0, bytesRead)
+                    }
+                }
+                downloadContext.ensureActive()
+                if (tempFile.length() < 5L) {
+                    throw IllegalStateException("El archivo PDF descargado no es válido o está vacío.")
+                }
+                val header = ByteArray(5)
+                tempFile.inputStream().use { it.read(header) }
+                if (!header.contentEquals("%PDF-".toByteArray(Charsets.US_ASCII))) {
+                    throw IllegalStateException("El archivo descargado no tiene un formato PDF válido.")
+                }
+                check(tempFile.renameTo(targetFile)) { "No se pudo guardar la previsualización del PDF." }
+                targetFile
+            } finally {
+                if (tempFile.exists()) tempFile.delete()
             }
         }
-        val safeName = nombreArchivo
-            ?.replace(Regex("[^A-Za-z0-9._-]"), "_")
-            ?.takeIf { it.isNotBlank() }
-            ?.let { if (it.endsWith(".pdf", ignoreCase = true)) it else "$it.pdf" }
-            ?: "documento_$remoteId.pdf"
-        val targetFile = File(previewDir, "${remoteId}_$safeName")
-
-        body.byteStream().use { input ->
-            targetFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
-        if (targetFile.length() < 5L) {
-            targetFile.delete()
-            throw IllegalStateException("El archivo PDF descargado no es válido o está vacío.")
-        }
-        val header = ByteArray(5)
-        targetFile.inputStream().use { it.read(header) }
-        if (!header.contentEquals("%PDF-".toByteArray(Charsets.US_ASCII))) {
-            targetFile.delete()
-            throw IllegalStateException("El archivo descargado no tiene un formato PDF válido.")
-        }
-        targetFile
     }
 
     override suspend fun revisarDocumento(
