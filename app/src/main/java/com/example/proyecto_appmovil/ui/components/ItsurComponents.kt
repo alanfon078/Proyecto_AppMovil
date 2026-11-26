@@ -45,16 +45,20 @@ fun ItsurTopBar(
     title: String,
     onNavigateBack: (() -> Unit)? = null,
     onOpenDrawer: (() -> Unit)? = null,
-    onLogout: (() -> Unit)? = null
+    onLogout: (() -> Unit)? = null,
+    leadingContent: (@Composable () -> Unit)? = null
 ) {
     TopAppBar(
         title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                leadingContent?.invoke()
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         },
         navigationIcon = {
             when {

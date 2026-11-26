@@ -30,8 +30,9 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val widthSizeClass = calculateWindowSizeClass(this).widthSizeClass
             val entry by navController.currentBackStackEntryAsState()
+            val route = entry?.destination?.route
             SideEffect {
-                systemBars.isAppearanceLightStatusBars = entry == null || entry?.destination?.route == Screen.Login.route
+                systemBars.isAppearanceLightStatusBars = route == null || route == Screen.Login.route
                 systemBars.isAppearanceLightNavigationBars = true
             }
             AppTheme {

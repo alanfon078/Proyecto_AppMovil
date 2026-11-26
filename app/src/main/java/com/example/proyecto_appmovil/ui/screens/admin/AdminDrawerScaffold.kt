@@ -21,8 +21,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.proyecto_appmovil.R
 import com.example.proyecto_appmovil.navigation.Screen
@@ -45,6 +47,8 @@ private val adminDrawerItems = listOf(
     AdminDrawerItem(Screen.AdminBroadcast.route, "Aviso General", Icons.Default.Campaign)
 )
 
+private val AdminDrawerWidth = 224.dp
+
 @Composable
 fun AdminDrawerScaffold(
     title: String,
@@ -57,27 +61,45 @@ fun AdminDrawerScaffold(
     val navigate: (String) -> Unit = { route ->
         if (currentRoute != route) onNavigateToRoute(route)
     }
-    val screenContent: @Composable ((() -> Unit)?) -> Unit = { onOpenDrawer ->
-        Scaffold(
-            containerColor = ItsurOffWhite,
-            topBar = { ItsurTopBar(title = title, onOpenDrawer = onOpenDrawer) },
-            content = content
-        )
-    }
 
     if (isExpanded) {
-        PermanentNavigationDrawer(
-            drawerContent = {
-                PermanentDrawerSheet(
-                    modifier = Modifier.width(224.dp),
-                    drawerContainerColor = Color.White,
-                    drawerContentColor = Color.Black
-                ) {
-                    AdminDrawerContent(currentRoute, navigate, onLogout)
-                }
+        Scaffold(
+            containerColor = ItsurOffWhite,
+            topBar = {
+                ItsurTopBar(title = title, leadingContent = {
+                    AdminDrawerBrand(modifier = Modifier.width(AdminDrawerWidth), logoSize = 40.dp)
+                })
             }
-        ) {
-            screenContent(null)
+        ) { padding ->
+            val headerPadding = PaddingValues(top = padding.calculateTopPadding())
+            val layoutDirection = LocalLayoutDirection.current
+            PermanentNavigationDrawer(
+                modifier = Modifier
+                    .padding(headerPadding)
+                    .consumeWindowInsets(headerPadding),
+                drawerContent = {
+                    PermanentDrawerSheet(
+                        modifier = Modifier.width(AdminDrawerWidth),
+                        drawerContainerColor = Color.White,
+                        drawerContentColor = Color.Black
+                    ) {
+                        AdminDrawerContent(
+                            currentRoute = currentRoute,
+                            onNavigateToRoute = navigate,
+                            onLogout = onLogout,
+                            showHeader = false
+                        )
+                    }
+                }
+            ) {
+                content(
+                    PaddingValues(
+                        start = padding.calculateStartPadding(layoutDirection),
+                        end = padding.calculateEndPadding(layoutDirection),
+                        bottom = padding.calculateBottomPadding()
+                    )
+                )
+            }
         }
     } else {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -109,7 +131,16 @@ fun AdminDrawerScaffold(
                 }
             }
         ) {
-            screenContent { scope.launch { drawerState.open() } }
+            Scaffold(
+                containerColor = ItsurOffWhite,
+                topBar = {
+                    ItsurTopBar(
+                        title = title,
+                        onOpenDrawer = { scope.launch { drawerState.open() } }
+                    )
+                },
+                content = content
+            )
         }
     }
 }
@@ -118,7 +149,8 @@ fun AdminDrawerScaffold(
 private fun AdminDrawerContent(
     currentRoute: String,
     onNavigateToRoute: (String) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    showHeader: Boolean = true
 ) {
     val itemColors = NavigationDrawerItemDefaults.colors(
         selectedContainerColor = ItsurRosaPastel,
@@ -135,39 +167,13 @@ private fun AdminDrawerContent(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Cabecera institucional ITSUR
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(ItsurCiruela)
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo_itsur),
-                        contentDescription = "Logo ITSUR",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White)
-                            .padding(6.dp)
-                    )
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column {
-                        Text(
-                            text = "ITSUR",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Control Escolar",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White
-                        )
-                    }
-                }
+            if (showHeader) {
+                AdminDrawerBrand(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ItsurCiruela)
+                        .padding(horizontal = 20.dp, vertical = 24.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -220,5 +226,38 @@ private fun AdminDrawerContent(
         )
 
         Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun AdminDrawerBrand(
+    modifier: Modifier = Modifier,
+    logoSize: Dp = 56.dp
+) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = painterResource(id = R.drawable.logo_itsur),
+            contentDescription = "Logo ITSUR",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .size(logoSize)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White)
+                .padding(6.dp)
+        )
+        Spacer(modifier = Modifier.width(14.dp))
+        Column {
+            Text(
+                text = "ITSUR",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = "Control Escolar",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White
+            )
+        }
     }
 }
