@@ -8,7 +8,7 @@
 **Estado del documento:** Fuente de verdad única en `SPECS/` (reemplaza los documentos desfasados `01..04` y `ARQUITECTURA_Y_REQUERIMIENTOS_E2.md`)
 
 > [!IMPORTANT]
-> Las secciones 1 a 4 conservan la auditoría, las decisiones y el plan con los que inició la implementación. La sección 8.3 registra el cierre de la verificación del 25 de noviembre de 2026. [Checklist de resultados finales](#83-checklist-de-resultados-finales)
+> Las secciones 1 a 4 conservan la auditoría, las decisiones y el plan con los que inició la implementación. Los resultados de esa entrega se registran en la sección 8.3. La especificación F11 describe los ajustes vigentes de registro, información personal, contraseña y respaldo. [Checklist de resultados finales](#83-checklist-de-resultados-finales) · [Ajustes F11](#f11-ajustes-de-registro-información-personal-contraseña-y-respaldo)
 
 ---
 
@@ -125,7 +125,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 ---
 
-## 5. Especificación Detallada de las 3 Nuevas Features
+## 5. Especificación detallada de las features
 
 ---
 
@@ -157,6 +157,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
   - **Registro (`RegisterScreen.kt` / `RegisterViewModel.kt`):** Eliminar la lista hardcodeada `municipiosGto`, el `ExposedDropdownMenuBox` de municipio y los valores precargados `estado = "Guanajuato"` / `municipio = "Uriangato"` en `RegisterUiState`; reemplazar por dos `ItsurTextField` independientes y obligatorios: `"Estado de Residencia"` y `"Municipio de Residencia"` (inicializados en `""`, con `onEstadoChange`, `onMunicipioChange`, `errorEstado` y `errorMunicipio`).
   - **Perfil (`ProfileScreen.kt` / `ProfileViewModel.kt`):** Separar el campo de residencia en `Dirección (calle y colonia)`, `Municipio` y `Estado` tanto en modo lectura (`DatoItem`) como en modo edición (`ItsurTextField`), mostrando también estos datos en `AdminAspiranteDetailScreen.kt`.
   - **Modelo, Room, API y BD:** Agregar `estadoResidencia: String` y `municipioResidencia: String` en `Aspirante`, `AspiranteEntity`, `RegisterRequestDto` y `AspiranteDto`; retirar la dependencia de `idEstado = 11` / `idMunicipio = 1` en `InscripcionesRepositoryImpl.kt`, los `COALESCE(..., 'Guanajuato'/'Uriangato')` de `server/src/app.js`, los endpoints obsoletos `GET /catalogos/estados` y `GET /catalogos/municipios` (junto con `EstadoEntity`/`MunicipioEntity`), y actualizar `server/database/schema.sql` + `server/src/db.js` añadiendo `estado_residencia VARCHAR(100) NULL` y `municipio_residencia VARCHAR(120) NULL` en `aspirantes` (dejando `id_estado`/`id_municipio` opcionales o retirando dichas FKs y semillas fijas).
+  - F11 actualiza la captura de `Estado de Residencia` en el registro a una lista desplegable de entidades federativas.
 
 - [x] **F07-05 — Regla de contraseña mínimo 8 caracteres en App y API (Req 12, Req 18)**
   - Actualizar etiqueta y validación en `RegisterScreen.kt` / `RegisterViewModel.kt` a `contrasena.length < 8` (`"La contraseña debe tener mínimo 8 caracteres"`).
@@ -372,16 +373,28 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 
 ---
 
+### F11. Ajustes de registro, información personal, contraseña y respaldo
+
+Cubre los requerimientos 22 a 26.
+
+- [x] **F11-01 — Información personal del aspirante (Req 22).** Retirar el renglón «Promedio Bachillerato» de Mi Perfil y del expediente que consulta Control Escolar (administración/coordinación). El certificado de bachillerato sigue dentro del trámite documental. El modelo y los datos históricos de promedio conservan su compatibilidad.
+- [x] **F11-02 — Calle en el registro (Req 23).** Mostrar el campo de texto «Calle». El formulario exige un valor de hasta 255 caracteres y recorta espacios exteriores antes de enviarlo como `direccion`. El alta lo guarda en `aspirantes.direccion` y las pantallas de alumno y Control Escolar lo consultan dentro de la dirección existente.
+- [x] **F11-03 — Estado y municipio de residencia (Req 24).** El registro presenta un desplegable de selección única con las 32 entidades federativas de México, incluida Ciudad de México. La selección es obligatoria y se envía como `estado_residencia`. «Municipio de Residencia» conserva la captura libre obligatoria de hasta 120 caracteres y se guarda como `municipio_residencia`. [Catálogo de áreas geográficas del INEGI](https://www.inegi.org.mx/app/areasgeograficas/)
+- [x] **F11-04 — Confirmación y desplazamiento al cambiar contraseña (Req 25).** En Mi Perfil, el orden de los campos es «Contraseña Actual», «Confirmar Contraseña Actual» y «Nueva Contraseña». La acción «Siguiente» del teclado enfoca el campo inferior y desplaza la pantalla para mantenerlo visible. La confirmación es obligatoria y debe coincidir exactamente con la contraseña actual antes de enviar la solicitud. La nueva contraseña exige un mínimo de 8 caracteres. La API verifica la contraseña actual de la cuenta.
+- [x] **F11-05 — Respaldo y arranque de MySQL (Req 26).** Actualizar `server/database/bd_inscripciones_itsur.bak` con el esquema y los catálogos institucionales. Node.js restaura el respaldo al iniciar si `DB_NAME` es una base nueva o vacía. Un bloqueo de MySQL coordina arranques concurrentes. Las bases en uso conservan sus registros y se actualizan mediante las migraciones. Una restauración interrumpida bloquea el arranque hasta revisar la instalación. [Configuración de la API](../server/README.md#configuración)
+
+---
+
 ## 6. Contrato Consolidado de Endpoints API (`/api/v1`)
 
 | Grupo | Método y Ruta | Roles | Acción / Estado |
 | :--- | :--- | :---: | :--- |
 | **Auth** | `POST /api/v1/auth/login` | Público | Autenticación real con `bcrypt` + JWT firmado (`access_token`, `refresh_token`). |
-| **Auth** | `POST /api/v1/auth/register` | Público | Registro transaccional en MySQL (`nombre_usuario` único, `contrasena >= 8`, `estado_residencia`, `municipio_residencia`). |
+| **Auth** | `POST /api/v1/auth/register` | Público | Registro transaccional en MySQL (`nombre_usuario` único, `contrasena >= 8`, `direccion`, `estado_residencia`, `municipio_residencia`). Android envía «Calle» en `direccion`. |
 | **Auth** | `GET /api/v1/auth/disponibilidad` | Público | **Nuevo:** Consulta disponibilidad de `nombre_usuario` en MySQL (`?nombre_usuario=...`). |
 | **Auth** | `POST /api/v1/auth/refresh` | Público | Rotación real contra tabla `refresh_tokens`. |
 | **Auth** | `POST /api/v1/auth/logout` | Autenticado | Revoca refresh token en MySQL. |
-| **Auth** | `PATCH /api/v1/auth/password` | Autenticado | **Nuevo:** Cambio real de contraseña (`>= 8` caracteres) verificando contraseña actual. |
+| **Auth** | `PATCH /api/v1/auth/password` | Autenticado | Cambio de contraseña (`>= 8` caracteres) verificando la contraseña actual. Android valida la coincidencia de la confirmación antes de enviar la solicitud. |
 | **Catálogos** | `GET /api/v1/catalogos/carreras` | Público | Catálogo activo de carreras ITSUR desde MySQL. |
 | **Aspirante** | `GET /api/v1/aspirantes/me` | `aspirante` | Datos del aspirante autenticado (`req.user.idAspirante`). |
 | **Aspirante** | `PUT /api/v1/aspirantes/me` | `aspirante` | Actualiza teléfono, dirección, `estado_residencia` y `municipio_residencia` en MySQL. |
@@ -409,12 +422,12 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 | **Preguntas Admin** | `POST /api/v1/admin/preguntas/:id/responder` | `escolar` | **Nuevo:** Responde pregunta, marca `respondida` y genera notificación al alumno. |
 | **Aviso General** | `POST /api/v1/admin/notificaciones/aviso-general` | `escolar` | **Nuevo:** Emite aviso masivo en `notificaciones` para todos los aspirantes activos. |
 | **Eliminados** | ~~`GET/POST /api/v1/aspirantes/me/pago`~~ | — | **Retirados definitivamente (Req 14).** |
-| **Eliminados** | ~~`GET /api/v1/catalogos/estados`~~ · ~~`GET /api/v1/catalogos/municipios`~~ | — | **Retirados por campos de residencia libre (Req 11).** |
+| **Eliminados** | ~~`GET /api/v1/catalogos/estados`~~ · ~~`GET /api/v1/catalogos/municipios`~~ | — | Android incluye la lista del estado para el registro. El municipio se captura como texto libre. |
 | **Eliminados** | ~~`GET /api/v1/auth/me`~~ | — | **Retirado de `InscripcionesApiService.kt`** (no implementado en backend; usar `/aspirantes/me` o implementar solo si se requiere chequeo de sesión). |
 
 ---
 
-## 7. Matriz de Trazabilidad Completa (19 Requerimientos × 11 Decisiones)
+## 7. Matriz de trazabilidad (26 requerimientos)
 
 | Req | Descripción del Requerimiento | Decisión `/grill-me` Aplicable | Feature | Tasks | Fase |
 | :-: | :--- | :--- | :---: | :--- | :---: |
@@ -428,7 +441,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 | **8** | Agrandar/reubicar Fechas a Navigation Drawer + Logout ahí (quitar de esquina superior) | Drawer solo para Admin; en Menú Alumno quitar logout duplicado | `F08` / `F07` | `F08-01`, `F07-08` | Fases 4–5 |
 | **9** | Implementar CRUD de fechas y reubicación del botón de nueva fecha | — | `F08` | `F08-07` | Fases 3, 5 |
 | **10** | Filtrado de alumnos por estado con los contadores del Panel Escolar | Mantener `Total`, `En Revisión`, `Aprobados` + agregar `En Captura` y `Con Observaciones` | `F08` | `F08-03` | Fase 5 |
-| **11** | Eliminar lista de municipios; campos separados de Estado y Municipio | Campos de texto libre separados en Registro (`RegisterScreen`) y Mi Perfil (`ProfileScreen`) | `F07` | `F07-04` | Fases 3–4 |
+| **11** | Eliminar lista de municipios y separar Estado y Municipio | Municipio como texto libre en Registro y Mi Perfil. F11 incorpora el desplegable de Estado en Registro | `F07` / `F11` | `F07-04`, `F11-03` | Fases 3–4 y ajuste posterior |
 | **12** | Contraseña mínimo 8 caracteres | — | `F07` | `F07-05` | Fases 3–4 |
 | **13** | Estatus de inscripción: eliminar paso 4 y reemplazar paso 5 por "Documentos aprobados" | — | `F07` | `F07-06` | Fase 4 |
 | **14** | Eliminar toda la zona de comprobante de pago y relacionados | Retirar de Android, API Node.js y quitar tablas `pagos` y `firmas_reglamento` de `schema.sql` | `F07` | `F07-07` | Fases 3–4 |
@@ -439,6 +452,11 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 | **19** | Agregar logo del ITSUR en el inicio de la aplicación | Logo oficial adjunto en `LoginScreen`, Splash Screen inicial e ícono launcher | `F07` | `F07-03` | Fase 4 |
 | **20** | Campo de nombre de usuario con validaciones anti-duplicados en Registro | Campo obligatorio en `RegisterScreen` + consulta `/auth/disponibilidad` + validación `409` en `register` | `F10` | `F10-01` | Fase 8 |
 | **21** | Confirmación de envío de documento PDF en apartado de alumno | Diálogo de confirmación con nombre y tamaño del PDF antes de subir | `F10` | `F10-02` | Fase 8 |
+| **22** | Retirar el promedio de bachillerato de información personal | Mi Perfil del alumno y expediente de administración/coordinación | `F11` | `F11-01` | Ajuste posterior |
+| **23** | Capturar Calle en Registro | Campo de texto obligatorio que se guarda como `direccion` | `F11` | `F11-02` | Ajuste posterior |
+| **24** | Seleccionar una de las 32 entidades federativas y conservar la captura del municipio | Desplegable de Estado y campo de texto libre de Municipio | `F11` | `F11-03` | Ajuste posterior |
+| **25** | Avanzar al campo inferior y confirmar la contraseña actual | «Siguiente» enfoca y desplaza. La confirmación actual precede a la contraseña nueva | `F11` | `F11-04` | Ajuste posterior |
+| **26** | Actualizar el `.bak` y restaurarlo al arrancar Node.js | Restauración automática para esquemas nuevos o vacíos. Migraciones para bases en uso | `F11` | `F11-05` | Ajuste posterior |
 
 ---
 
@@ -456,7 +474,7 @@ Las **3 nuevas features (`F07`, `F08`, `F09`)** se ejecutarán de forma ordenada
 1. **Base de Datos y Backend (Fase 3):** Importar `schema.sql` en MySQL 8 limpio, verificar ausencia de `pagos`/`firmas_reglamento`, presencia de `preguntas_dudas`, y probar con suite HTTP (`supertest` o scripts REST) cada endpoint del contrato de la Sección 6 incluyendo casos de borde (`401` sin JWT, `403` aspirante intentando rutas `/admin/*`, `409` al aprobar trámite con `< 4` documentos aprobados, contraseña de 7 caracteres rechazada con `422`).
 2. **Compilación y UI Android (Fases 4–6):** Ejecutar `./gradlew assembleDebug testDebugUnitTest`, verificar visualmente modo claro con texto `#000000` incluso con el dispositivo en modo oscuro del sistema, logo ITSUR en Splash/Login/Launcher, sin botones demo ni pagos, y línea de tiempo de 4 pasos.
 3. **Flujos Críticos End-to-End (Fase 7):**
-   - Registrar nuevo aspirante con Estado y Municipio libres y contraseña de 8+ caracteres -> verificar registro real en MySQL.
+   - Registrar un aspirante con Calle, un Estado de la lista, un Municipio escrito libremente y una contraseña de al menos 8 caracteres. Verificar el alta en MySQL.
    - Subir los 4 PDFs -> como Admin filtrar por contadores (`En Captura`, `En Revisión`, `Con Observaciones`, `Aprobados`), abrir expediente, previsualizar PDF con `PdfRenderer` (zoom/páginas) y `FileProvider`, comprobar bloqueo de `"Aprobar Trámite"` con 3/4 aprobados y habilitación con 4/4 aprobados.
    - Crear, editar y eliminar una Fecha Límite como Admin -> comprobar reflejo inmediato en vista del Alumno.
    - Enviar pregunta de tipo `Documentos` como Alumno -> como Admin filtrar `Documentos` + `Pendientes por responder`, verificar autor/fecha, responder -> confirmar aparición de la notificación en `NotificationsScreen` y en la barra de estado del dispositivo Android (`WorkManager`).
@@ -499,3 +517,11 @@ Las horas corresponden a Ciudad de México. El aviso `Prueba WorkManager 64e804c
 | `16:18:35` | Se completaron 15 min 3 s con la app en segundo plano y el aviso visible en la bandeja. |
 
 El contador de la misma tarea periódica pasó de 1 a 2 ejecuciones con 15 min 14,9 s entre ellas. El historial de Android registró cero reanudaciones de la app y WorkManager registró cero ejecuciones inmediatas nuevas. [Captura del aviso](evidencias/aviso-en-segundo-plano.png) · [Resultado](evidencias/workmanager-resultado.json) · [Registro de la API](evidencias/workmanager-api.txt) · [Monitoreo en segundo plano](evidencias/workmanager-monitoreo.txt) · [WorkManager antes](evidencias/workmanager-antes.json) · [WorkManager después](evidencias/workmanager-despues.json)
+
+### 8.4 Verificación de F11
+
+- [x] **Compilación.** `assembleDebug`, `testDebugUnitTest` y `assembleDebugAndroidTest` completados. Pasaron las 5 pruebas unitarias.
+- [x] **Emulador Android.** Pasaron las 4 pruebas instrumentadas. La prueba de contraseña confirmó que «Siguiente» enfoca y muestra primero la confirmación de la contraseña actual y después la contraseña nueva. Una confirmación distinta se rechazó en Mi Perfil con el mensaje correspondiente.
+- [x] **Registro y pantallas de información personal.** Se completó un alta desde el emulador con Calle, Estado seleccionado y Municipio escrito libremente. Mi Perfil y el expediente de Control Escolar mostraron los tres datos. Se verificó la eliminación del promedio en ambas pantallas, incluido un expediente con promedio histórico guardado.
+- [x] **API y MySQL aislado.** Pasaron 12 comprobaciones. Al registrar una calle con acentos, la API recortó los espacios exteriores. Los datos de calle, estado y municipio se recuperaron desde el perfil del aspirante y el expediente administrativo. También se comprobaron las solicitudes de registro de clientes anteriores, el límite de longitud, la validación del municipio y el cambio real de contraseña.
+- [x] **Restauración inicial.** Pasaron 8 comprobaciones con MySQL aislado. Se importó el `.bak` en un esquema nuevo y en uno vacío. Dos arranques concurrentes realizaron una sola importación. En una base en uso, el arranque conservó los registros y funcionó con una cuenta con permisos de lectura y escritura. Se comprobó el bloqueo de una restauración incompleta y el arranque real de Node.js con respuestas `200` de salud y del catálogo de carreras.

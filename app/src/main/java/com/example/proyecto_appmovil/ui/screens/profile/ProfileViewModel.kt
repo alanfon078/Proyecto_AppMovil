@@ -19,7 +19,10 @@ data class ProfileUiState(
     val estadoEdit: String = "",
     val municipioEdit: String = "",
     val passwordActual: String = "",
+    val confirmacionPasswordActual: String = "",
     val passwordNueva: String = "",
+    val passwordActualizada: Boolean = false,
+    val errorPassword: String? = null,
     val isLoading: Boolean = false,
     val mensajeExito: String? = null,
     val mensajeError: String? = null
@@ -80,8 +83,17 @@ class ProfileViewModel(
     fun onDireccionChange(v: String) = _uiState.update { it.copy(direccionEdit = v.take(255)) }
     fun onEstadoChange(v: String) = _uiState.update { it.copy(estadoEdit = v.take(100)) }
     fun onMunicipioChange(v: String) = _uiState.update { it.copy(municipioEdit = v.take(120)) }
-    fun onPasswordActualChange(v: String) = _uiState.update { it.copy(passwordActual = v) }
-    fun onPasswordNuevaChange(v: String) = _uiState.update { it.copy(passwordNueva = v) }
+    fun onPasswordActualChange(v: String) = _uiState.update {
+        it.copy(passwordActual = v, passwordActualizada = false, errorPassword = null)
+    }
+
+    fun onConfirmacionPasswordActualChange(v: String) = _uiState.update {
+        it.copy(confirmacionPasswordActual = v, passwordActualizada = false, errorPassword = null)
+    }
+
+    fun onPasswordNuevaChange(v: String) = _uiState.update {
+        it.copy(passwordNueva = v, passwordActualizada = false, errorPassword = null)
+    }
 
     fun guardarCambios() {
         val s = _uiState.value
@@ -127,15 +139,17 @@ class ProfileViewModel(
         if (s.isLoading) return
         val error = when {
             s.passwordActual.isEmpty() -> "Ingrese la contraseña actual"
+            s.confirmacionPasswordActual.isEmpty() -> "Confirme la contraseña actual"
+            s.passwordActual != s.confirmacionPasswordActual -> "La confirmación no coincide con la contraseña actual"
             Character.codePointCount(s.passwordNueva, 0, s.passwordNueva.length) < 8 -> "La nueva contraseña debe tener mínimo 8 caracteres"
             else -> null
         }
         if (error != null) {
-            _uiState.update { it.copy(mensajeExito = null, mensajeError = error) }
+            _uiState.update { it.copy(passwordActualizada = false, errorPassword = error) }
             return
         }
 
-        _uiState.update { it.copy(isLoading = true, mensajeExito = null, mensajeError = null) }
+        _uiState.update { it.copy(isLoading = true, passwordActualizada = false, errorPassword = null) }
         viewModelScope.launch {
             repository.cambiarPassword(s.passwordActual, s.passwordNueva)
                 .onSuccess {
@@ -143,13 +157,14 @@ class ProfileViewModel(
                         it.copy(
                             isLoading = false,
                             passwordActual = "",
+                            confirmacionPasswordActual = "",
                             passwordNueva = "",
-                            mensajeExito = "Contraseña cambiada con éxito"
+                            passwordActualizada = true
                         )
                     }
                 }.onFailure { ex ->
                     _uiState.update {
-                        it.copy(isLoading = false, mensajeError = ex.message ?: "No se pudo cambiar la contraseña")
+                        it.copy(isLoading = false, errorPassword = ex.message ?: "No se pudo cambiar la contraseña")
                     }
                 }
         }

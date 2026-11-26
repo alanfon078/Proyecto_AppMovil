@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -12,8 +14,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,6 +45,7 @@ fun ProfileScreen(
         onMunicipioChange = viewModel::onMunicipioChange,
         onGuardarCambios = viewModel::guardarCambios,
         onPasswordActualChange = viewModel::onPasswordActualChange,
+        onConfirmacionPasswordActualChange = viewModel::onConfirmacionPasswordActualChange,
         onPasswordNuevaChange = viewModel::onPasswordNuevaChange,
         onCambiarPassword = viewModel::cambiarPassword
     )
@@ -54,10 +62,20 @@ fun ProfileContent(
     onMunicipioChange: (String) -> Unit,
     onGuardarCambios: () -> Unit,
     onPasswordActualChange: (String) -> Unit,
+    onConfirmacionPasswordActualChange: (String) -> Unit,
     onPasswordNuevaChange: (String) -> Unit,
     onCambiarPassword: () -> Unit
 ) {
+    val confirmacionPasswordFocus = remember { FocusRequester() }
+    val passwordNuevaFocus = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val guardarPassword = {
+        focusManager.clearFocus()
+        onCambiarPassword()
+    }
+
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
             ItsurTopBar(
                 title = "Datos Personales",
@@ -158,10 +176,6 @@ fun ProfileContent(
                     Spacer(modifier = Modifier.height(8.dp))
                     DatoItem(label = "CURP", valor = uiState.aspirante?.curp ?: "")
                     DatoItem(label = "Correo Electrónico", valor = uiState.aspirante?.email ?: "")
-                    DatoItem(
-                        label = "Promedio Bachillerato",
-                        valor = uiState.aspirante?.promedioBachillerato?.toString().orEmpty()
-                    )
                 }
             }
 
@@ -263,7 +277,26 @@ fun ProfileContent(
                         onValueChange = onPasswordActualChange,
                         label = "Contraseña Actual",
                         leadingIcon = Icons.Default.Lock,
-                        isPassword = true
+                        isPassword = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(onNext = { confirmacionPasswordFocus.requestFocus() })
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ItsurTextField(
+                        value = uiState.confirmacionPasswordActual,
+                        onValueChange = onConfirmacionPasswordActualChange,
+                        label = "Confirmar Contraseña Actual",
+                        leadingIcon = Icons.Default.Lock,
+                        isPassword = true,
+                        modifier = Modifier.focusRequester(confirmacionPasswordFocus),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(onNext = { passwordNuevaFocus.requestFocus() })
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     ItsurTextField(
@@ -271,14 +304,31 @@ fun ProfileContent(
                         onValueChange = onPasswordNuevaChange,
                         label = "Nueva Contraseña (mín. 8 caracteres)",
                         leadingIcon = Icons.Default.Lock,
-                        isPassword = true
+                        isPassword = true,
+                        modifier = Modifier.focusRequester(passwordNuevaFocus),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { guardarPassword() })
                     )
                     Spacer(modifier = Modifier.height(14.dp))
+                    uiState.errorPassword?.let { ErrorBanner(mensaje = it) }
+                    if (uiState.passwordActualizada) {
+                        Text(
+                            text = "Contraseña cambiada con éxito",
+                            color = ItsurOnSurface,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
                     PrimaryButton(
                         text = "Actualizar Contraseña",
-                        enabled = uiState.passwordActual.isNotEmpty() && uiState.passwordNueva.isNotEmpty(),
+                        enabled = uiState.passwordActual.isNotEmpty() &&
+                            uiState.confirmacionPasswordActual.isNotEmpty() && uiState.passwordNueva.isNotEmpty(),
                         isLoading = uiState.isLoading,
-                        onClick = onCambiarPassword
+                        onClick = guardarPassword
                     )
                 }
             }
@@ -325,6 +375,7 @@ fun ProfileScreenPreview() {
             onMunicipioChange = {},
             onGuardarCambios = {},
             onPasswordActualChange = {},
+            onConfirmacionPasswordActualChange = {},
             onPasswordNuevaChange = {},
             onCambiarPassword = {}
         )

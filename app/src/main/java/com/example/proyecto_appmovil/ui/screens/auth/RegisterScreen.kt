@@ -47,6 +47,7 @@ fun RegisterScreen(
         onTelefonoChange = viewModel::onTelefonoChange,
         onCarreraChange = viewModel::onCarreraChange,
         onRecargarCarreras = viewModel::cargarCarreras,
+        onCalleChange = viewModel::onCalleChange,
         onEstadoChange = viewModel::onEstadoChange,
         onMunicipioChange = viewModel::onMunicipioChange,
         onContrasenaChange = viewModel::onContrasenaChange,
@@ -68,6 +69,7 @@ fun RegisterContent(
     onTelefonoChange: (String) -> Unit,
     onCarreraChange: (Int) -> Unit,
     onRecargarCarreras: () -> Unit,
+    onCalleChange: (String) -> Unit,
     onEstadoChange: (String) -> Unit,
     onMunicipioChange: (String) -> Unit,
     onContrasenaChange: (String) -> Unit,
@@ -272,13 +274,21 @@ fun RegisterContent(
             }
 
             ItsurTextField(
-                value = uiState.estado,
-                onValueChange = onEstadoChange,
-                label = "Estado de Residencia",
-                leadingIcon = Icons.Default.LocationOn,
-                errorMessage = uiState.errorEstado,
+                value = uiState.calle,
+                onValueChange = onCalleChange,
+                label = "Calle",
+                leadingIcon = Icons.Default.Home,
+                errorMessage = uiState.errorCalle,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            EstadoResidenciaDropdown(
+                estado = uiState.estado,
+                error = uiState.errorEstado,
+                onEstadoChange = onEstadoChange
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -347,6 +357,55 @@ fun RegisterContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EstadoResidenciaDropdown(
+    estado: String,
+    error: String?,
+    onEstadoChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = estado,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text("Estado de Residencia") },
+            isError = error != null,
+            supportingText = error?.let { message -> { Text(message) } },
+            leadingIcon = {
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = ItsurCiruela)
+            },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            shape = RoundedCornerShape(12.dp),
+            colors = itsurTextFieldColors(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            estadosDeMexico.forEach { entidad ->
+                DropdownMenuItem(
+                    text = { Text(entidad) },
+                    onClick = {
+                        onEstadoChange(entidad)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun RegisterScreenPreview() {
@@ -362,6 +421,7 @@ fun RegisterScreenPreview() {
             onTelefonoChange = {},
             onCarreraChange = {},
             onRecargarCarreras = {},
+            onCalleChange = {},
             onEstadoChange = {},
             onMunicipioChange = {},
             onContrasenaChange = {},

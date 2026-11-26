@@ -142,7 +142,6 @@ fun AdminAspiranteDetailContent(
                         DatoItem(label = "CURP", valor = asp?.curp ?: "")
                         DatoItem(label = "Correo Institucional", valor = asp?.email ?: "")
                         DatoItem(label = "Teléfono", valor = asp?.telefono ?: "")
-                        DatoItem(label = "Promedio Bachillerato", valor = asp?.promedioBachillerato?.toString().orEmpty())
                         DatoItem(label = "Dirección (calle y colonia)", valor = asp?.direccion.orEmpty())
                         DatoItem(label = "Municipio", valor = asp?.municipioResidencia.orEmpty())
                         DatoItem(label = "Estado", valor = asp?.estadoResidencia.orEmpty())

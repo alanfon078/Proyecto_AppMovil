@@ -24,6 +24,7 @@ data class RegisterUiState(
     val carreras: List<CarreraEntity> = emptyList(),
     val cargandoCarreras: Boolean = false,
     val errorCatalogo: String? = null,
+    val calle: String = "",
     val estado: String = "",
     val municipio: String = "",
     val contrasena: String = "",
@@ -37,6 +38,7 @@ data class RegisterUiState(
     val errorEmail: String? = null,
     val errorTelefono: String? = null,
     val errorCarrera: String? = null,
+    val errorCalle: String? = null,
     val errorEstado: String? = null,
     val errorMunicipio: String? = null,
     val errorContrasena: String? = null,
@@ -117,7 +119,8 @@ class RegisterViewModel(
     fun onEmailChange(v: String) = _uiState.update { it.copy(email = v, errorEmail = null) }
     fun onTelefonoChange(v: String) = _uiState.update { it.copy(telefono = v.filter { ch -> ch.isDigit() }.take(10), errorTelefono = null) }
     fun onCarreraChange(id: Int) = _uiState.update { it.copy(idCarrera = id, errorCarrera = null) }
-    fun onEstadoChange(v: String) = _uiState.update { it.copy(estado = v.take(100), errorEstado = null) }
+    fun onCalleChange(v: String) = _uiState.update { it.copy(calle = v.take(255), errorCalle = null) }
+    fun onEstadoChange(v: String) = _uiState.update { it.copy(estado = v, errorEstado = null) }
     fun onMunicipioChange(v: String) = _uiState.update { it.copy(municipio = v.take(120), errorMunicipio = null) }
     fun onContrasenaChange(v: String) = _uiState.update { it.copy(contrasena = v, errorContrasena = null) }
     fun onConfirmarContrasenaChange(v: String) = _uiState.update { it.copy(confirmarContrasena = v, errorConfirmarContrasena = null) }
@@ -166,8 +169,12 @@ class RegisterViewModel(
             _uiState.update { it.copy(errorCarrera = "Seleccione una carrera") }
             valid = false
         }
-        if (s.estado.isBlank()) {
-            _uiState.update { it.copy(errorEstado = "Ingrese su estado de residencia") }
+        if (s.calle.isBlank()) {
+            _uiState.update { it.copy(errorCalle = "Ingrese su calle") }
+            valid = false
+        }
+        if (s.estado !in estadosDeMexico) {
+            _uiState.update { it.copy(errorEstado = "Seleccione su estado de residencia") }
             valid = false
         }
         if (s.municipio.isBlank()) {
@@ -196,7 +203,8 @@ class RegisterViewModel(
                 email = s.email.trim(),
                 telefono = s.telefono,
                 idCarrera = idCarrera,
-                estadoResidencia = s.estado.trim(),
+                direccion = s.calle.trim(),
+                estadoResidencia = s.estado,
                 municipioResidencia = s.municipio.trim(),
                 contrasena = s.contrasena
             )
